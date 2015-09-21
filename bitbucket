@@ -280,3 +280,45 @@ Best parctice to follow the below mentioned format
 	4)Any future improvements
 
 
+git remote -v 			--show remote repos name
+git pull remoterepoaddress	
+
+git remote rename origin sf		--- this will rename the git remote directory from origin to sf
+
+Creating a tag for my previous commit, commit that i just made.
+git tag -a 0.2 -m "Version 0.2"
+
+ Now say that we have a previous commit how are we going to add a tag to those commits
+	1)List out all of your commits on to the screen 		git log --pretty=oneline
+	2)Copy the hash (just few charcters) foreg:-
+		
+	Below are my commits,
+
+	bhavesh@workstation:~/mydocs$ git log --pretty=oneline
+	46c9c20323e163f44a07cc629bdb47b59ab718e3 dailycommit
+	983455e4fcfd3a857201d2a0c250cf427bb4301f aftersomeadded git command
+	7674f67b2819538e46a5038490c69e7d040c140d antohertestcommitonbitbucket
+	eecae0df034ef58ff0547d669b03d3c411d9095f mypersonaldoc
+	
+	3) Now we want to tag  7674f67b2819538e46a5038490c69e7d040c140d antohertestcommitonbitbucket
+	4) git tag -a v0.5 7674f67b28
+
+You can also push the tags to the remote repo
+
+git push reponame v0.5
+git push reponame --tags		That will add all the tags to the repo
+
+Creating aliases for Git commands.
+
+git config --global alias.co commit		---This creates alias "co" for "commit"
+
+How to clone a git repository
+
+git clone remoterepoaddress
+for eg:-
+git clone https://github.com/bhaveshpatel826/Python.git
+
+Branching In git means taking the project in your own direction without affecting the the master code. So that you can go an work with the code without potentially introducing unstable code to the master branch.
+ 
+
+	
