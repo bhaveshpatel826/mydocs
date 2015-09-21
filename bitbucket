@@ -220,6 +220,8 @@ git diff --staged
 
 git diff HEAD
 
+git diff --cached
+
 git diff 1e13aa1 870d54b 	---Testing the diff between the commits
 
 Branches are kind of pointer to the commit
@@ -239,4 +241,30 @@ git push -u origin master
 
 git branch test			--would create a test branch
  
+Incase you want to ingnore some files from the git directory that you need to create the .gitignore file inside that dir.
+
+https://github.com/github/gitignore
+
+Files in the staging area cannot be deleted unless you do a force remove.
+			touch deleteme.txt
+			git add deleteme.txt
+			git rm deleteme.txt
+			Its not gonna allow you to delet the deleteme.txt file
+			error:'deleteme.txt' has changes staged in the index
+	Then you have to forcefully delete it i.e	git rm -f deleteme.txt
+
+git log
+git log --pretty=oneline
+
+git log --pretty=format:"%h : %an : %ar : %s"
+			%h 	shows the hash
+			%an	show who created the file
+			%ar	date it was changed
+			%s	show the first line of the file
+
+git log -p -2		show the log for last 2 commit
+
+
+	
+
 
