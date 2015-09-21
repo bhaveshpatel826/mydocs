@@ -235,3 +235,8 @@ git stash
 git checkout master
 git merge feature	we merged feature into master, but you need to switch to master branch its like joing feature to master, so you need to be in master first and then merge feature to it.
 
+git push -u origin master
+
+git branch test			--would create a test branch
+ 
+
