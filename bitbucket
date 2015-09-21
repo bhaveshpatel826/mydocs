@@ -262,9 +262,21 @@ git log --pretty=format:"%h : %an : %ar : %s"
 			%ar	date it was changed
 			%s	show the first line of the file
 
-git log -p -2		show the log for last 2 commit
+git log -p -2			show the log for last 2 commit
+git log --stat			shows abbreviated log
+git log --since=1.weeks		shows log since last week
+git log --since="2015-09-21"	shows log since the mentioned date
+git log --befor="any date"	shows log before the mentioned date
 
+git commit --amend		allows you to change the previously made commit
 
-	
+Incase if you decide to stage a file and you do the command git add filename and later you realise that you dont want to stage it you issue this command to over come this:-	git reset HEAD filename
+
+git commit -m "commit message format"
+Best parctice to follow the below mentioned format
+	1)exactly the problem which also acts as a heading
+	2)In a paragraph format describe the original problem that was addressed.
+	3)Then go on to describe the result of the change.
+	4)Any future improvements
 
 
