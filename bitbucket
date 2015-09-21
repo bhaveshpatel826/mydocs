@@ -1,0 +1,237 @@
+rsync -avihP -e "ssh -p 1422" 128.199.162.222:/home/bhavesh/vagrant vagrant
+
+###Docker commands####
+
+docker pull images --- pull images from the repos
+
+docker pull ubuntu -- pulls ubuntu specific images
+
+docker run -t -i imageid /bin/bash --- will get you a bash shell from the image
+
+dcoker ps		--- shows docker process
+
+docker ps -a 		--- shows all of the docker process
+
+docker commit -a "bhavesh" -m "message" imageid newimagename
+
+docker run -d  --name="imagename" -p=80:80 imagename --- to expose a port from the docker container
+
+
+What is java class file
+
+The Java class file is a precisely defined format for compiled Java. Java source code is compiled into class files that can be loaded and executed by any JVM
+
+What is jvm
+
+Java virtual machine (JVM), an implementation of the Java Virtual Machine Specification, interprets compiled Java binary code (called bytecode) for a computer's processor (or "hardware platform") so that it can perform a Java program's instructions.
+
+ps -auxf | grep  '/usr/sbin/httpd' | grep "^root" | awk '{ print $2 }'
+
+1012,1032s/^/#/g ###################### Multiple line together in vim
+
+
+Creating New certificate using openssl
+
+openssl req -new -x509 -nodes -out server.crt -keyout  server.key
+					#			#
+					#			#
+					#			#
+
+EOF				     Publickey		   Privatekey		
+############
+
+A Linux machine with ext2 filesystem if it crashed then at reboot, kernel would have to scan the entire filesystem for corrupt files. EXT3 has something called as journalingm what it does is this, When a kernel open a file for any operation it marks the file as open in the filesystem so at the time of system crash it just has to check the authencity of those particular files.
+
+EXT4 has option of ecnrypting the filesystem at the time of installation.
+
+EOF
+############
+Apache and tomcat integration using mod_jk
+
+
+1) Install apache and make sure mod_rewrite and mod_proxy modules are available to apache
+
+2) Download and Install the mod_jk connector
+	untar the source code of tomcat-connectors-1.2.41-src.tar.gz
+3) cd tomcat-connectors-1.2.41-src/native
+	
+4) start the mod_jk compilation process Incase apxs is not installed you need to install it .
+
+* apxs is a tool for building and installing extension modules for the Apache HyperText Transfer Protocol (HTTP) server. This is achieved by building a dynamic shared object (DSO) from one or more source or object files which then can be loaded into the Apache server under runtime via the LoadModule directive from mod_so.
+  Install apache2-dev for debian based os and httpd-devel for rhel based os. Once apxs is successfully install, we can continue with mod_jk compilation.
+
+	cd /tomcat-connectors-1.2.41-src/native
+
+	./configure --with-apxs=/usr/sbin/apxs  		Incase if gcc is not install it will throw errors, make sure it is installed.
+	sudo make
+	sudo make install
+	
+	
+5) Make sure the module has been installed by checking into /usr/lib64/httpd/modules, But you still need to mention about the module in apache conf file.
+	LoadModule jk_module modules/mod_jk.so
+
+6) Configuring JK Connector:-
+	
+	a)Create a worker.properties in /etc/httpd/conf/ with following content
+
+		worker.list=tomcat,tomcat2
+		worker.tomcat.type=ajp13
+		worker.tomcat.host=192.168.122.30
+		worker.tomcat.port=8009
+	 
+       	  	worker.tomcat2.type=ajp13
+                worker.tomcat2.host=192.168.122.31
+                worker.tomcat2.port=8009
+	
+	b)Make entry in httpd.conf
+	
+		JkWorkersFile 	"conf/worker.properties"
+		JkLogfile	"logs/jk.log"
+		
+		JkMount /mytomcat*              tomcat2
+		JkMount /sample*                tomcat
+
+Now it should work fine webserver/mytomcat ------------> will open tomcat2
+			webserver/sample   ------------> will open tomcat	
+
+7) Incase if you want to go further with the configuration and create virtual hosts for the same.
+	
+	Create virtual host for the above config in apache
+	
+	NameVirtualHost *:80
+	<VirtualHost *:80>
+	ServerName mytomcat.technotronix.com
+	JkMount /mytomcat*	tomcat2
+	</VirtualHost>
+	
+	<VirtualHost *:80>
+	ServerName sample.technotronix.com
+	JkMount /sample*	tomcat2
+	</VirtualHost>
+
+Make sure that mytomcat.technotronix.com and sample.technotronix.com are pointing to your webserver in dns.
+
+EVEN WITH THE ABOVE CONFIGURATION FOR VIRTUAL HOST, THINGS WON'T WORK AS WE NEED TO MAKE USE OF mod_rewrite module for url base regular expression catching.
+
+8) Proper virtual host config
+
+# Tomcat integration virtual host
+ NameVirtualHost *:80
+         
+       <VirtualHost *:80>
+                        ServerName mytomcat.technotronix.com
+                        RewriteEngine on
+                        RewriteLog logs/apache-mod_rewite
+                        RewriteRule ^/(.*)$ /mytomcat/$1 [l,PT]
+                JkMount /*      tomcat2
+        </VirtualHost>
+         
+        <VirtualHost *:80>
+                         ServerName sample.technotronix.com
+                         RewriteEngine on
+                         RewriteLog logs/apache-mod_rewite
+                         RewriteRule ^/(.*)$ /sample/$1 [l,PT]
+                 JkMount /*        tomcat
+         </VirtualHost>
+
+EOF
+###########
+Tomcat load balance using mod_jk
+
+1) We create worker.properties file with the following content
+
+	worker.list=balancer,stat
+
+	worker.tomcat.type=ajp13
+	worker.tomcat.host=192.168.122.30
+	worker.tomcat.port=8009
+	worker.tomcat.lbfactor=10
+
+	worker.tomcat2.type=ajp13
+	worker.tomcat2.host=192.168.122.31
+	worker.tomcat2.port=8009
+	worker.tomcat2.lbfactor=10
+	
+	worker.balancer(canbeanyname).type=lb
+	worker.balancer.balance_workers=tomcat,tomcat2
+	worker.stat.type=status
+
+Change in httpd.conf 		JkMount /* 	balancer
+				JkMount /status stat
+
+EOF
+########################
+
+Tomcat based session affinity load balancing:-
+
+Need to add jvmroute=workernamegiveninworker.properties under engine tag in server.xml in each worker's server.xml file according to the name given in worker.properties.
+
+by default its like this <Engine name="Catalina" defaultHost="localhost">
+
+According to my configuration what i will metion is below.
+
+tomcat instance server.xml	<Engine name="Catalina" defaultHost="localhost" jvmRoute="tomcat">
+tomcat2 instance server.xml	<Engine name="Catalina" defaultHost="localhost" jvmRoute="tomcat2">
+
+* BUT with this moodle of loadbalancing another issue arrises if a user has been using a instance and all his work has been given to one of the tomcat instance incase of failure of that tomcat instance, the data specific to the user connected to that instance will get lost. In this the user will be given a new session which is from another tomcat instance.
+
+EOF
+########################
+
+Activating tomcat manager role.
+In tomcat-user.xml file unxomment the user block and create a new user
+<user username="bhavesh" password="admin123" roles="manager-gui"/>
+
+EOF
+###########
+Server Hardening tips
+
+Disable  PermitRootLogin,AllowTCpForwarding,x11Forwarding in sshd config
+
+
+EOF
+###########
+
+LEARNING GIT	20-09-2015
+
+
+git init 			---- to initialize git 
+
+git status 			---- shows git status
+
+git add filename 		---- will add it to the repository
+
+git commit 			--- commiting the change
+
+git commit -m "message"		-commit without going into the editor
+
+git config --global user.name "bhaveshpatel"
+git config --global user.email "bhaveshpatel826@gmail.com"
+git config --global color.ui true
+
+git log --graph --decorate --oneline --all --date-order
+git config --global merge.conflictstyle diff3
+git config --global core.editor vim
+git config --global --replace-all alias.l "log --graph --decorate --oneline -all --date-order"
+
+git diff 		--- to check diff in between the stage that is once you do git add after change the file and agian you change it but you don't add itm it will show you the difference
+
+git diff --staged
+
+git diff HEAD
+
+git diff 1e13aa1 870d54b 	---Testing the diff between the commits
+
+Branches are kind of pointer to the commit
+
+git branch
+
+git branch branchname
+
+git checkout branchname		to checkout a branch and you switch to the given branch name
+
+git stash
+
+git checkout master
+git merge feature	we merged feature into master, but you need to switch to master branch its like joing feature to master, so you need to be in master first and then merge feature to it.
+
