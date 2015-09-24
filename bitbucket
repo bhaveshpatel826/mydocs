@@ -321,4 +321,104 @@ git clone https://github.com/bhaveshpatel826/Python.git
 Branching In git means taking the project in your own direction without affecting the the master code. So that you can go an work with the code without potentially introducing unstable code to the master branch.
  
 
-	
+######################################################## LEARNING NAGIOS 22-09-2-15################################################################
+
+Nagios Installation steps on ubuntu12.04
+
+1)
+
+
+
+###################################################### Learning Iptables 23-09-2015 ################################################################
+
+Iptables is an front end to manage Netfilter which is integrated with kernel
+Iptables function primarily at  osi layer 3(Network) and 4(Transport)
+Iptables can manage icmp protocol which tends to operate at 3 and 4 layer of osi
+Iptables comes along with various modules which increase itse functionality, and which can be loaded dynamically on the fly.
+
+There are 3 default tables which cannot be deleted
+	a) mangle -- alter packets withing tcp/icmp/udp/etc
+
+	b) NAT	  -- to change source/dest to another souce/dest
+ 
+	c) Filter -- Ip packet filtering (INPUT,FORWARD,OUTPUT)
+
+iptables consist of tables within the table there are chains and with the chainsther are rules
+
+
+*ACL SYTNAX
+
+a)Make use of iptables command for constructing iptables based rules
+	b)itpables  commands
+	1)name of the chain - action what to do ( Append/Insert/Replace)
+	2) name of the table --magle/nat/userdefined
+	3)(filter),src/dest address)
+	4)dest ports/src ports (optionally) -p --sport/--dport
+	5)Jump/Target  -j ACCEPT/DROP/DENY/REJECT/LOG
+
+for eg:- BLock source ip from communicating to our system
+	iptables -A INPUT -s 192.168.55.1 -j DROP
+iptables  append to input chain source 192.168.55.1 jump target drop
+
+* Saving and Restoring Rules via text files
+a)iptables-save 	Dumps rules on the screen you need to redirect it.
+b)iptables-restore	You can restore for a file
+
+iptables -F  	Flush all the rules in all the chain in filter table.
+
+c) To restore rules use iptables-restore < firewallrules.txt
+d) To save rules use iptables-save > firewallrules.txt
+
+Chain Mgmt In varios tables (Mangle/filter/nat/user-defined)
+
+iptables -L 	will list the filter tables showing three chains
+iptables -L -t nat this will list nat table
+iptables -L -t mangle
+iptables -L -v 		shows the number of packets have passed
+iptables -L -v -n --line-numbers shows numbers for the rules
+
+for eg:-
+permit ssh
+iptables -A INPUT -p tcp --dport 22 -j ACCEPT
+
+deny telnet
+iptables -A INPUT -p tcp -dport 23 -j DROP
+
+adding a rule on a particular line number so that it can be matched accordingly
+
+iptables -I INPUT 1 -p tcp --dport telnet -j DROP  this will insert the rule at 						   1 place in INPUT chain
+
+Deleting and replacing rules
+
+iptables -D INPUT 3	this will delete the rule on 3
+
+iptables -R INPUT 2 -p tcp --dport 23 -j ACCEPT	this will replace the 2 rule and 						replace from the given rule.
+Flushing the rules:-
+
+iptables -F		flushes rules for all the chains
+
+iptables -Z INPUT	this will zero a given chain
+
+Creating a user defined tables
+
+packet processing in iptabels happens from top to down
+
+iptables -N INTRANET		this will create a new chain as intranet
+
+iptables -A INPUT 1 -s 192.168.122.0/24 -j INTRANET
+
+any traffic belonging to 192.168.122.0 subnet it will be sent to intranet chain
+we can carry on further processing from there on
+
+user defined chains must have unique names
+
+example rule in user made chain
+
+iptables -A INTRANET -p tcp --dport 23 -j DROP
+
+iptables -E INTRANET EXTRANET 	renames the userdefined chain
+
+Defining default chain policy
+
+iptables -P INPUT DROP 		default policy is set to drop
+
