@@ -431,5 +431,43 @@ iptables -A INPUT -i eth1 -s 192.168.122.0/24 -j DROP
 
 Thte above rule will block any traffic  from 192.168.122.0/24 coming from eth1 interface.
 
+TCp works on layer 4 (transport layer) Connection oriented
+UDP works on layer 5 (transport layer) Connection less
+
+Udp based application:- TFTP(booting system/updating infrastructer)
+			Syslog
+			NTP
+			DHCP binds on udp 67 and udp 68
+
+ICMP--- Internet control messaging protocol
+
+-p icmp  --icmp-type name/number 
+iptables -p icmp --help  this show the list of option that can be given with iptables using icmp
+
+To avoid writing of too many rules we can make use of multiport option in iptables 
+
+iptables -A INPUT -p tcp -m multiport --destination-port 22,8080 -j DROP
+
+This wil match both the port 22,8080 in one signle rule. For this kind of rule both the port should belong to same categorym tcp,tcp will work tcp,udp won't work
+
+Matching on the basis of mac address
+
+iptables -A INPUT -p tcp -m mac --mac-source lskdjfls -j drop
+
+iptables is considered as a statefull firewall becoz its able to track the connection that flows thtough the firewall. so matche can be perform based on the states of varios services passing through the firewall.
+
+IPtables states:- NEw,ESTABLISHED,RELATED,INVALID
+
+iptables -A INPUT -p tcp --dport 22 -m state --state NEW -j DROP	This will drop any new ssh connection but old ssh session for this machine will be there.
+
+iptables -A INPUT -p tcp --src 192.168.122.99 --dport 22 -m state --state NEW -j DROP 	This rule will block new connection form 192.168.122.99, but present connection will 												persistent#
+
+IPtables LOGGING
+
+iptables -A INPUT -p tcp --dport 22 -j LOG 		This will log all the said traffic for port 22
+
+log for packets coming for you system the log in INPUT
+log for packets routed thorugh your system then log in Forward chain
+
 
 
