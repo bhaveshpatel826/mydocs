@@ -422,3 +422,14 @@ Defining default chain policy
 
 iptables -P INPUT DROP 		default policy is set to drop
 
+Iptables  Matching
+
+-s;	-src ;	--source;	-->for matching any source
+-d;	-dst ;	--destinition;	-->for matching any dest
+
+iptables -A INPUT -i eth1 -s 192.168.122.0/24 -j DROP
+
+Thte above rule will block any traffic  from 192.168.122.0/24 coming from eth1 interface.
+
+
+
