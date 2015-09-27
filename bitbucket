@@ -441,6 +441,19 @@ Udp based application:- TFTP(booting system/updating infrastructer)
 
 ICMP--- Internet control messaging protocol
 
+What happens when a system ping a remote machine.
+ICMP TYPES:-
+	a)echo-request	= ping
+	b)echo-reply	= pong
+
+PING - local system sends a "echo-request" via its OUTPUT chain.
+Remote machine receives the "echo-request" on its INPUT chain.
+Remote machine then respond with a "echo-reply" which the enters our INPUT chain.
+
+If i drop echo-reply in INPUT chain then i won't be able to ping to anyone.
+If i drop echo-request in INPUT chain then nobody will be able to ping me.
+
+
 -p icmp  --icmp-type name/number 
 iptables -p icmp --help  this show the list of option that can be given with iptables using icmp
 
@@ -469,5 +482,18 @@ iptables -A INPUT -p tcp --dport 22 -j LOG 		This will log all the said traffic 
 log for packets coming for you system the log in INPUT
 log for packets routed thorugh your system then log in Forward chain
 
+route add -net 192.168.5.0 netmask 255.255.255.0 gw 192.168.122.1
+
+creating a linux machine into a router 
+echo 3 > /proc/sys/net/ipv4/ip_forward
 
 
+iptables -R FORWARD 2 -m state --state NEW,ESTABLISHED -j ACCEPT
+iptables -A FORWARD -s 192.168.122.0/24 -d 192.168.5.20 -j ACCEPT
+
+#####################
+Added in my workstation 	route add -net 192.168.5.0 netmask 255.255.255.0 gw 192.168.122.22
+
+iptables -A FORWARD -p all -s 192.168.122.0/24 -d 192.168.122.20 -j ACCEPT	This will allow traffic form 122.0 to 5.20 
+iptables -A FORWARD -p all -d 192.168.122.0/24 -s 192.168.5.20 -j ACCEPT -----> To allow reverse traffic from 192.168.5.20 to 192.168.122.0/24 network
+#####################
