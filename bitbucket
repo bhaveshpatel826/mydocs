@@ -184,6 +184,47 @@ In tomcat-user.xml file unxomment the user block and create a new user
 
 EOF
 ###########
+APACHE installation form source code:- 30-09-2015
+
+
+CASE 1 Fully dynamic webserver
+******
+./configure --with-apr=/usr/local/apr-httpd/ --with-apr-util=/usr/local/apr-util-httpd/ --prefix=/usr/local/apache2d/ --enable-mods-shared=all
+
+aprutil
+./configure --prefix=/usr/local/apr-util-httpd --with-apr=/usr/local/apr-httpd/
+
+apr-httpd
+./configure  --prefix=/usr/local/apr-httpd/
+
+make & make install 
+
+This will create a fully dynamic webserver, only the required modules are in core and other compiled as shared.
+
+
+CASE2
+******
+Fully dynamic webserver with mod_userdir builtin staticlly
+
+
+./configure --with-apr=/usr/local/httpd/apr-httpd --with-apr-util=/usr/local/apr-util-httpd/ --prefix=/usr/local/apache2d/ --enable-mods-shared=all -enable-userdir=static
+
+
+CASE3
+******
+Fully dynamic webser with mod_userdir disabled
+
+./configure --with-apr=/usr/local/httpd/apr-httpd --with-apr-util=/usr/local/apr-util-httpd --prefix=/usr/local/apache2d --enable-mod-shared=all --disable-userdir
+
+
+CASE4
+******
+Fully dynamic server webserver with all the modules being staticly compiled
+
+./configure --with-apr=/usr/local/apr-httpd --with-apr-util=/usr/local/apr-util-httpd --prefix=/usr/local/apache2/ --enable-mods-static=all
+
+##############
+
 Server Hardening tips
 
 Disable  PermitRootLogin,AllowTCpForwarding,x11Forwarding in sshd config
@@ -497,3 +538,28 @@ Added in my workstation 	route add -net 192.168.5.0 netmask 255.255.255.0 gw 192
 iptables -A FORWARD -p all -s 192.168.122.0/24 -d 192.168.122.20 -j ACCEPT	This will allow traffic form 122.0 to 5.20 
 iptables -A FORWARD -p all -d 192.168.122.0/24 -s 192.168.5.20 -j ACCEPT -----> To allow reverse traffic from 192.168.5.20 to 192.168.122.0/24 network
 #####################
+
+rsync -avihP --progress -e "ssh -p 1422"  128.199.162.222:/home/bhavesh/Linuxacademy linuxacademy
+
+######################
+
+Network Address Transalation:-
+
+Taking ip addresss of one subnet and you mask them to some other subnet that is consider to be masquerading.
+
+Nat table:-
+Nat table contains 3 chains
+
+Prerouting:- Packet that are destined to the system that is accessible to the router
+		rules written in this chain DNAT
+
+Postrouting:- Masquerading and source nating
+
+Output: - Locally source packet
+
+
+Masquerade:-
+
+iptables -t nat -A POSTROUTING -j MASQUERADE -s 192.168.5.0/24 -d 192.168.122.0/24
+
+http://www.slashroot.in/linux-nat-network-address-translation-router-explained
