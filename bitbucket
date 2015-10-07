@@ -1,6 +1,7 @@
 rsync -avihP -e "ssh -p 1422" 128.199.162.222:/home/bhavesh/vagrant vagrant
 
 ###Docker commands####
+usermod -aG docker bhavesh
 
 docker pull images --- pull images from the repos
 
@@ -11,6 +12,23 @@ docker run -t -i imageid /bin/bash --- will get you a bash shell from the image
 dcoker ps		--- shows docker process
 
 docker ps -a 		--- shows all of the docker process
+
+docker run it --rm ubuntu /bin/bash	this will remove the image on exit
+docker run -it --rm -v /home/bhavesh:/mydocker ubuntu /bin/bash
+docker run -it --rm -v /home/bhavesh:/mydocker -u 1000:1000 ubuntu /bin/bash
+
+docker run -t -i --name bhavesh1 -v /root/mydocker:/mydock ubuntu /bin/bash
+The above command will create a instance with name bhavesh with mount /root/mydocker directory and it will mount it as mydocker on the instance... this image will be created using the ubuntu image.
+
+docker run -t -i --name bhavesh2 --volumes-from bhavesh1 ubuntu /bin/bash
+
+The above command will create bhavesh2 instance with all th volumes from bhavesh1
+
+
+docker run -it --rm -v $(pwd):/var/www/html apache2ctl -D FOREGROUND
+The above command will start apache with content of my pwd in /var/www/html/
+
+docker ps --no-trunc=true
 
 docker commit -a "bhavesh" -m "message" imageid newimagename
 
@@ -44,8 +62,74 @@ A Linux machine with ext2 filesystem if it crashed then at reboot, kernel would 
 
 EXT4 has option of ecnrypting the filesystem at the time of installation.
 
-EOF
+EOF 
 ############
+APache and tomcat integration using proxypass
+
+Below line is to be added in apache configuration
+ProxyPass / "http://tomcat.technotronix.com:8080/"
+ProxyPassReverse / "http://tomcat.technotronix.com:8080/"
+
+EOF
+#########################
+Apache website clustering using proxypass Load balancer
+
+<Proxy balancer://mycluster>
+BalancerMember http://ob.technotronix.com/openbravo
+BalancerMember http://ob1.technotronix.com/openbravo
+</Proxy>
+ProxyPass /test "balancer://mycluster/"
+
+#########################
+Virtual hosts in tomcat (Serving mutliple webapps wit different hostname in tomcat )
+
+Tomcat server.xml layout
+<server>
+	<Service name="Catalina">
+		<Engine name="Catalina">
+			<Host name="localhost">		-----> we are concern about this
+			</Host>
+		</Engine>
+	</Service>
+</server>
+		
+You have toedit this line rarther add mor line like this
+
+<Host name="www.bhavesh.com"  appBase="bhavesh_webapps" -----> Webapps is the direcotry
+            unpackWARs="true" autoDeploy="true"/>		where the context of this 
+<Host name="www.patel.com"  appBase="patel_webapps"		virtual host is stored
+            unpackWARs="true" autoDeploy="true"/>
+<Host name="www.bkp.com"  appBase="bkp_webapps"
+            unpackWARs="true" autoDeploy="true"/>
+
+
+#########################
+Difference between mod_jk and proxypass
+
+mod_proxy
+:Pros
+      o No need for a separate module compilation and maintenance. mod_proxy,
+        mod_proxy_http, mod_proxy_ajp and mod_proxy_balancer comes as part of 
+        standard Apache 2.2+ distribution
+      o Ability to use http https or AJP protocols, even within the same 
+        balancer.
+* Cons:
+      o mod_proxy_ajp does not support large 8K+ packet sizes.
+      o Basic load balancer
+      o Does not support Domain model clustering
+
+mod_jk
+
+* Pros:
+      o Advanced load balancer
+      o Advanced node failure detection
+      o Support for large AJP packet sizes
+* Cons:
+      o Need to build and maintain a separate module
+########################
+
+
+#########################
 Apache and tomcat integration using mod_jk
 
 
@@ -563,3 +647,90 @@ Masquerade:-
 iptables -t nat -A POSTROUTING -j MASQUERADE -s 192.168.5.0/24 -d 192.168.122.0/24
 
 http://www.slashroot.in/linux-nat-network-address-translation-router-explained
+
+
+###############################Learning AWS 5-10-2-15##############################
+
+Amazon storage basics:-
+
+1) AMaozon s3 its  a scalable files/obkect storage. these objects can be movie files,pdfs,images,mp3s. Objects can be from 1 byte ot 5tb, And you can store unlimited amount of data.
+you can have multi threaded uploads from different source to your same aws account. you can have servers side encryption. you can server static content for your webpage. and it will server it in high available environment. Has a life cycle policy which allows to assign a policy to a bucket, you can integrate it with glacier. we can also use versioning
+
+2) GLacier:-
+	1) Glacier is an archiving storage type you use it for storing infrequently accessd		data, becoz it takes 2-6 hours to actually retrive data from glacier. 				only cost 1cent a gigabyte.
+		You can integrate a policy in s3 which automaticly syncs you backups to 		glacier
+
+3) EBS:-1)Its a block storage device you can write filesystem on it,
+	2)EBS is redundant but its only redundant to your availibility zone.
+	3)Need to customize it for creating a highly available architecture out of ebs.
+	
+* NOTE
+
+S3 when you add an object it add the object within all the availibility zones. so your data is highly available and highly redudant within the region. Is a very much region specific and not availiblity zone specific.
+
+Ephemeral storage:-
+	1) this is temporary storage data, its lost as soon as the machine is shutdown.
+
+
+Amazon security:-	AWS works on shared responsibility environment it means you as user			   are responsible for certain aspect of the security, and certain par			      is to be taken care by amazon.
+
+User Responsibility:- 1) user management and access
+			IAM (Identity Access Management)
+			Multifactor Authentication
+			Password/key Rotation
+			Trusted Advisor
+			Security Froups
+			Access Control Lists
+			VPC
+
+AWS Responsibilty:- 1)Host physical server level and below
+ 		    2)Physical Enivronment Secutiy/Protection: Fire/power/climate managemet
+		    3)Storage Device Decommissionin
+		    4)Network Devie Security and acls
+		    5)API access end points terminated with SSL for secure communication
+		    6)DDOS Protection		
+		    7)EC2 Instances cannot send spoofed data. aws does ingress and egress for a traffic genrating from ec2, they make sure the source is correct
+		    8)Port scanning is against the law in aws.
+	            9)Hypervisor isolation so instances on same physical host cannot talk to each other any how.
+
+
+AWS ESSential gloabl infrastructer:- 
+
+It consists of AWS Regions availablility zone and edge locations
+
+#############
+
+AMAZON S3
+
+#############
+
+ITS a highly availables by design, its an object storage it highly available coz it syncs your data across different availablity zone with in the region. which means if one availiblity zone becomes unavailable still your data is available.
+
+Its design for 11 nines durablilty  and 99.99% availablity.
+	Durablity means you r object is going to be there always
+	availablity is self explained.
+Cost:- cost per gig basis depends on your region, 12 cents a gig, also data out transfer is also charged. Data transfer within the same region is not chargeable. 
+
+You also have a RRS option in S3, which is you dont 11 nines durability where the availabilty remains the samem here you can store the data which is easily reproducable.
+
+Life cycle policies and object versioningL-
+	you can define a life cycle policy where in you mention the object after storing for certain amount of time automatically archive it to glacier storage or you can have it deleted.
+
+You can also enable versioning, you can have unlimited version of your objects.
+
+Once versoning has been enable on s3 bucket you can't disable it but you can suspend it.
+
+#############
+EC2 Instance types
+1)Ondemand instances:- these type of instances are created on demand say you want to test 3 instances of your application and you want to pay for just per hour than you can make use of on demand instance. high in price
+
+2)Spot instances:- AWS allow to bid for unused ec2 instances. but aws does'nt guarantee the avaialiblity of the instances. its realyy  cheap
+
+3)Reserverd Instances:-It guarantee you certain amt of processing power always available to you. eg - an application of your which demands certian compute 24/7 ,you know abt it and you want to provision something for the same, what you do is you purchase a reserve instance by paying a upfront amount which considerably lower than you ec2 ondemand instances. this reduces the cost by 30-40%
+ 3types of reserve instances:- Heavy,medium and light
+
+
+	
+
+
+#############
