@@ -1,4 +1,8 @@
+i shal be up before you are awake, i shall be at field before you are up.
+
 rsync -avihP -e "ssh -p 1422" 128.199.162.222:/home/bhavesh/vagrant vagrant
+
+rsync -avihP --progress -e "ssh -p 1422" vishnu.byteoflinux.com:/home/bhavesh/AWS_SYSOP .
 
 ###Docker commands####
 usermod -aG docker bhavesh
@@ -306,8 +310,84 @@ CASE4
 Fully dynamic server webserver with all the modules being staticly compiled
 
 ./configure --with-apr=/usr/local/apr-httpd --with-apr-util=/usr/local/apr-util-httpd --prefix=/usr/local/apache2/ --enable-mods-static=all
+#####################################################################################
+Url to file system Mapping:-
+1. Publish content form various locations in and outside if the filesystem.
+2.
+
+ALias | ScriptAlias (CGI)
+
+3. USe AliasMatch with Regular expression
+	
+	AliasMatch ^/docs/(.*pdf) /var/www/docs2/$1
+
+
+#####################################################################################
+
+Redirection
+Features:
+1) Sends Client to new destination
+2) Update Browser || Http caller url
+3) Remaps: URL-Path beginning with '/' ton new url (scheme and hostname | /path)
+4) Implementation of: 'mod_alias' as Redirect,RedirectMatch, RedirectPermanent,
+ RedirectTemp
+5) Take precedence over: Alias bases directives regardless configuration 
+6) Default Status = 302 (Temporary ) if unspecified
+7) Supports codes in the range of 300-399 (standard redirection codes) && 410
+8) common Codes:-
+ a) 301 = pemanent
+ b) 302 = temporary
+9)Usage: Redirect [Match|Permanent|Temp] [status] URL=path URL
+
+Redirect 301 /docs http://192.168.122.121/docs2
+	  \
+	   \
+           Code for Permanent redirect
+
+RedirectMatch ----supports Regexs
+
+RedirectMatch (.*)\.doc $1.pdf		-- applies .pdf substitution across the site
+RedirectMatch /docs/(.*)\.doc  /PDF/$1.pdf	places client into '/PDF' directory
+
+##
+Htaccess
+Features:
+1. Indirect site control via: FTP, SFTP, etc- via clients i.e Dreamweaver, Filezilla, etc.
+2. On-demand, configuration updates toyour site managed by apache
+3. Useful in the event that you lack 'root' access to manipulate the server;s configuration
+4. Substitute for: <Directory></Directory> Directives
+Note: We need not include <Directory. tags because '.htaccess' files are per directory
+5. Recursive control of direcoty branches
+6. Per-directory granular control
+7. Caveat: Performance impacts as Apache must read each .htaccess file per directory
+ per request
+8. Choice of file name - Driven by 'AccessFilName' directive
+9. Permitted Directives are restricted by:'AllowOverride' directive --specified in server's main configuration.
+10. Ideal for shared webserver environment
+
+Every request via .htaccess genrate disk io
+whereas, <Directory> blocks are cached
+
+##
+Content negotiation
+ 
+
+
+
+
+########################################## APACHE MPMS ######################################
+
+
+
+
+
+
+
+
+
 
 ##############
+
 
 Server Hardening tips
 
@@ -446,11 +526,193 @@ git clone https://github.com/bhaveshpatel826/Python.git
 Branching In git means taking the project in your own direction without affecting the the master code. So that you can go an work with the code without potentially introducing unstable code to the master branch.
  
 
-######################################################## LEARNING NAGIOS 22-09-2-15################################################################
+######################################################## LEARNING NAGIOS 09-10-2-15################################################################
 
-Nagios Installation steps on ubuntu12.04
+Defaults checks are perfomed every 5 minutes
 
-1)
+Checks:-
+Active (Default, Nagios-Initiated) Passive (externally-initiated) checks are supported
+
+Nagios allows us to monitor OBJECTs
+
+objects:-
+a:- Host --- physical and or virtual
+b:- Services --- http,smpt,dns,etc
+c:- Contacts --- Defined for notification purposes
+d:- Commands --- eg:- command that changes dns entry when a host is down
+e:- Timeperiod-- When a particulat host should be checked, when a particular host is
+		 notified
+
+Supports notifications:-
+a) SMS
+b) E-mail
+c) Custom -- ie write to a file, log to db, log to file for syslog server
+
+Notification Schedules (notification_period)
+Notification States (notification_options)
+Paralled monitoring (service | host checks) : i.e Nmap|Nessus
+Extensible via plugins eg nrpe (nagios remote plugin executor)
+
+Has split (Distributed) Configuration files
+	Main (Nagios.cfg) ---Nagios Daemon (core)
+	Objects -host|Hostgropups|Services | Contacts | Contact Group | commands ,etc
+	Resources -Data that should not be ready by the cgi 
+	cgi webinterface
+
+
+Nagios INSTALLATION & CONFIGURATION:-
+
+1)Configures required items, including Apache HTTPD
+2)Auto-monitoring of localhost
+
+Note:-Postfix or similar mta is required
+
+nagios.cfg primary config file for nagios Core
+	cfg_file -specifies config file to include i.e hosts, serviecs, contacts, etc.
+	cfg_dir	 -specifies directory to include, containing config files (*.cfg) to
+		  process.
+
+
+/usr/lib/nagios/plugins each command are systm binaries that reside in this directory.
+
+Starting with the monitoring:--
+
+By default nagios monitors itself.
+
+ICMP(PING) Moniotring
+1) Ping Monitoring using /usr/lib/nagios/plugins/check_host  --> check_icmp
+
+This basic check_assumes ICMP PING (echo|request|reply) are supported by network
+
+If monitoring host reside on fpregin host then ensure ping capabilites at l3 level(router,switch)
+
+2) Predefined template ro handle most monitors
+ a)'generic-host' -checks target using ICMP with sensible defaults
+ b)'generic-host' - can be inherited by the host definition using 'use generic-host'
+
+3) Host and various object are read from '/etc/nagios3/conf.d'
+ a) default localhost.cfg as a template can be used
+
+NOTE:-CGI and NAgios do not update hostlist on the fly
+
+4) check_interval to the monitoring host config in conf.d directory
+	check_interval 2
+
+5) hosts are maintained on a rolling basis and may not necessarily be checked simultaneously
+
+TCP| UDP Monitoring
+1) Directly monitors publicly accessible services published
+2) Check commands 'check_*' can be run manually from shell to confirm
+
+Many services i.e mysql will run with unix daemon sockets excluslively and that this configuratio prohibits tcp|UDP access
+
+Monitoring services based on tcp services:-
+example for ssh and http service
+
+# check that web services are running
+define service {
+        hostgroup_name                  http-servers
+        service_description             HTTP
+        check_command                   check_http
+        use                             generic-service
+        notification_interval           0 ; set > 0 if you want to be renotified
+}
+
+# check that ssh services are running
+define service {
+        hostgroup_name                  ssh-servers
+        service_description             SSH
+        check_command                   check_ssh
+        use                             generic-service
+        notification_interval           0 ; set > 0 if you want to be renotified
+}
+
+Nagios Remote Process Executor (NRPE)
+Features:
+ 1) Ascertain local data:
+  a) CPU Load
+  b) RAM
+  c) Current Users
+  d) Disk Usage
+ 2) Supports
+  a) Direct (runs loacl checkks via NRPE tunnel)
+  b) Indirect (runs common checks via NRPE tunnel) 
+eg:- If nagios monitor instance does'not have access to target services NRPE
+	(Indirect) mode works well.
+ 3)Restrcited set of command may run on the target: '/etc/nagios/nrpe.cfg'
+ 4)Ability to execute remote plugins
+ 5)Supports SSL connections (DEFAULT)
+ 6)Supports Clear-Text using: '-n' options with:'check_nrpe'
+ 7)Uses TCP:5666 - Open on firewall
+ 8)Implemented ass 2 components:
+  a) Client - Runs on monitoring server
+  b) Server - Runs on the target (Monitored) Server
+
+Tasks:-
+1. Install NRPE Server - Target Server - Runs NRPE Daemon - Requires  'nagios-plugins' 	  package
+ a) Install nagios-nrpe-server
+ b) /etc/nagios/nrpe.cfg update allowed_hosts to permit nagios monitoring server access
+2. Install NRPE - CLient  - Monitoring Server
+ a) apt-get install nagios-nrpe-plugin
+	/etc/nagios-plugins/config/check_nrpe.cfg
+	/usr/lib/nagios/plugins/check_nrpe
+3. Run Checks Manually From Nagios Server to Confirm Functionality.
+Note:- Default communication uses SSL
+
+eg:-
+/usr/lib/nagios/plugins/check_nrpe -H 192.168.122.70 -c check_vda1
+/usr/lib/nagios/plugins/check_nrpe -H 192.168.122.70 -c check_total_procs
+
+Object Groups:-
+Features
+ 1) Grouping of commonly classed objects: hosts, services, contacts, etc.
+ 2) Visual representation in CGI
+ 3) Configuration ingeritance: ie Services mapped to HostGroups
+ 4) Defaults are /etc/nagios3/conf.d/hostgroups.cfg
+
+Task:-
+ 1) Extend the default admins to include other contacts
+ 2) Add another block of 
+
+	define contact{
+        contact_name                    bhavesh
+        alias                           linuxadmin
+        service_notification_period     24x7
+        host_notification_period        24x7
+        service_notification_options    w,u,c,r
+        host_notification_options       d,r
+        service_notification_commands   notify-service-by-email
+        host_notification_commands      notify-host-by-email
+        email                           bhaveshpatel826@gmail.com
+
+        }
+
+	The above blocke can be edited as per our requirement.
+
+
+
+Make sure you make the new contact the member of the contact gorup.
+
+define contactgroup{
+        contactgroup_name       admins
+        alias                   Nagios Administrators
+        members                 root,bhavesh
+
+By creating another bloxk of the same code you can create another contact group
+
+define contactgroup{
+         contactgroup_name       Helpdesk
+         alias                   Nagios Administrators
+         members                 root,bhavesh
+
+###
+
+service_notification_period can be edited from the timperiodconfig file
+
+###
+
+Create hostgorups, add members to it and then add these hostgorups to the 
+services groups, so all the members of the hostgourps will be acquire these services
 
 
 
@@ -651,6 +913,9 @@ http://www.slashroot.in/linux-nat-network-address-translation-router-explained
 
 ###############################Learning AWS 5-10-2-15##############################
 
+VPC, EC2, ELB, Route53, RDS, S3, ElasticCache
+
+
 Amazon storage basics:-
 
 1) AMaozon s3 its  a scalable files/obkect storage. these objects can be movie files,pdfs,images,mp3s. Objects can be from 1 byte ot 5tb, And you can store unlimited amount of data.
@@ -729,8 +994,119 @@ EC2 Instance types
 3)Reserverd Instances:-It guarantee you certain amt of processing power always available to you. eg - an application of your which demands certian compute 24/7 ,you know abt it and you want to provision something for the same, what you do is you purchase a reserve instance by paying a upfront amount which considerably lower than you ec2 ondemand instances. this reduces the cost by 30-40%
  3types of reserve instances:- Heavy,medium and light
 
-
-	
-
-
 #############
+AWS IAM:-
+
+Best practice is to create a administrator account after aws account is created
+
+################################## HAPROXY 7-10-2015 ##################################
+
+Differences Between Layer 4 and Layer 7 Load Balancing
+
+
+Layer 4 load balancing operates at the intermediate transport layer, which deals with delivery of messages with no regard to the content of the messages. Transmission Control Protocol (TCP) is the Layer 4 protocol for Hypertext Transfer Protocol (HTTP) traffic on the Internet. Layer 4 load balancers simply forward network packets to and from the upstream server without inspecting the content of the packets. They can make limited routing decisions by inspecting the first few packets in the TCP stream.
+
+Layer 7 load balancing operates at the high-level application layer, which deals with the actual content of each message. HTTP is the predominant Layer 7 protocol for website traffic on the Internet. Layer 7 load balancers route network traffic in a much more sophisticated way than Layer 4 load balancers, particularly applicable to TCP-based traffic such as HTTP. A Layer 7 load balancer terminates the network traffic and reads the message within. It can make a load-balancing decision based on the content of the message (the URL or cookie, for example). It then makes a new TCP connection to the selected upstream server (or reuses an existing one, by means of HTTP keepalives) and writes the request to the server.
+Benefits of Layer 7 Load Balancing
+
+Layer 7 load balancing is more CPU-intensive than packet-based Layer 4 load balancing, but rarely causes degraded performance on a modern server. Layer 7 load balancing enables the load balancer to make smarter load-balancing decisions, and to apply optimizations and changes to the content (such as compression and encryption). It uses buffering to offload slow connections from the upstream servers, which improves performance.
+
+A device that performs Layer 7 load balancing is often referred to as a reverse-proxy server.
+An Example of Layer 7 Load Balancing
+
+Let’s look at a simple example. A user visits a high-traffic website. Over the course of the user’s session, he or she might request static content such as images or video, dynamic content such as a news feed, and even transactional information such as order status. Layer 7 load balancing allows the load balancer to route a request based on information in the request itself, such as what kind of content is being requested. So now a request for an image or video can be routed to the servers that store it and are highly optimized to serve up multimedia content. Requests for transactional information such as a discounted price can be routed to the application server responsible for managing pricing. With Layer 7 load balancing, network and application architects can create a highly tuned and optimized server infrastructure or application delivery network that is both reliable and efficiently scales to meet demand.
+
+
+
+HAProxy Configuration
+
+HAProxy's configuration file is divided into two major sections:
+
+    Global: sets process-wide parameters
+    Proxies: consists of defaults, listen, frontend, and backend parameters
+
+
+
+#################################### Learning DATABASE###################################
+
+RDBMS
+
+RDBMS stands for Relational Database Management System.
+
+RDBMS is the basis for SQL, and for all modern database systems such as MS SQL Server, IBM DB2, Oracle, MySQL, and Microsoft Access.
+
+The data in RDBMS is stored in database objects called tables.
+
+A table is a collection of related data entries and it consists of columns and rows.
+
+
+Some of The Most Important SQL Commands
+
+    SELECT - extracts data from a database
+    UPDATE - updates data in a database
+    DELETE - deletes data from a database
+    INSERT INTO - inserts new data into a database
+    CREATE DATABASE - creates a new database
+    ALTER DATABASE - modifies a database
+    CREATE TABLE - creates a new table
+    ALTER TABLE - modifies a table
+    DROP TABLE - deletes a table
+    CREATE INDEX - creates an index (search key)
+    DROP INDEX - deletes an index
+
+
+*The SELECT DISTINCT statement is used to return only distinct (different) values.
+
+*The WHERE clause is used to extract only those records that fulfill a specified criterion.
+
+
+#Text Fields vs. Numeric Fields
+
+SQL requires single quotes around text values (most database systems will also allow double quotes).
+
+However, numeric fields should not be enclosed in quotes:
+
+##
+The SQL AND & OR Operators
+
+The AND operator displays a record if both the first condition AND the second condition are true.
+
+The OR operator displays a record if either the first condition OR the second condition is true.
+
+The SQL ORDER BY Keyword
+
+The ORDER BY keyword is used to sort the result-set by one or more columns.
+
+The ORDER BY keyword sorts the records in ascending order by default. To sort the records in a descending order, you can use the DESC keyword.
+
+###################################################### Raid ######################
+
+mdadm --create /dev/md0 --level=0 --raid-devices=2 /dev/sda6 /dev/sda7
+
+mdadm --detail /dev/md0
+
+mkfs.ext4 /dev/md0
+
+incase of issue mdo will be booted like md127
+
+mdadm --stop /dev/md127
+
+mdadm --assemble --scan
+
+#####
+mdadm /dev/md0 --fail /dev/sdb1 #Marks /dev/sdb1 as faulty
+ mdadm --remove /dev/md0 /dev/sdb1 #Removes /dev/sdb1 from the array 
+
+Afterwards, when you have a new drive for replacement, re-add the drive again:
+mdadm /dev/md0 --add /dev/sdb1 
+
+Note that the steps detailed above apply for systems with hot-swappable disks. If you do not have such technology, you will also have to stop a current array, and shutdown your system first in order to replace the part:
+
+ mdadm --stop /dev/md0
+# shutdown -h now
+
+Then add the new drive and re-assemble the array:
+# mdadm /dev/md0 --add /dev/sdb1
+mdadm --grow --raid-devices=4 /dev/md1
+
+# mdadm --assemble /dev/md0 /dev/sdb1 /dev/sdc1 
