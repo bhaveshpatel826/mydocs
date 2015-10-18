@@ -1079,6 +1079,1237 @@ The ORDER BY keyword is used to sort the result-set by one or more columns.
 
 The ORDER BY keyword sorts the records in ascending order by default. To sort the records in a descending order, you can use the DESC keyword.
 
+
+@@@@@@@@@@@@@@@@@@@@@@@@@ Postgres
+
+creating a super user
+
+createuser -e -s U postgres bhavesh
+
+drop a user
+drop -e -U postgres bhavesh
+
+postgres is multi processed
+
+## Logging
+3 types of log
+a) stderr
+b) csvlog	import into spreadsheets | DBs
+c) syslog
+
+controlled via postgresql.conf
+ability to control verbosity
+automatic log rotation based on criteria: age | size
+stderr & csv based logs are stored in /dat/pg_log
+syslog based logs are not logged in here
+
+its is the first process launched by the master process
+
+## Data types
+1. allow us to control the type of data on per column basis
+
+types:-
+Numeric:
+ a) 'smallint' - 16-bits (2-bytes) whole numbers
+ b) 'int'	32bits	(4 bytes) wholenumbers
+ c) 'bigint' 	big integer 64 bits whole numbers only
+ d) 'numeric'[(precision,scale)]
+	d1. percision = sig figs
+	d2. scale = number of values to the right of the decimal point
+ e) 'real' - 32 bits -variable - 6 decimal digits of precision
+ f) 'double precision' -6-bits	- variable - 15 decimal digits of precision
+ g) 'serial' - 32-bits signed auto-incrementing
+ h) 'bigserial' 64 bits
+
+Money:-
+ a) 'money' -64 bits -
+
+Strings - text
+
+a. 'text' - varchar -unlimited preferred charcter storage type within postgres
+b. 'char(n)' fixed-length, blank-padded if value stored is < 'n'length
+ b1. i.e 'char(9)' - 'linuxcbt' --> stored as linuxcbt
+note char(n) truncates values that are > 'n' length
+ b2. i.e 'char' -> 'char(1)' - effectively becomes a 1-charchter field
+c. varchar(n) - variable length with n limit if n is present
+
+Dates & time - Uses 'Julian date (form 4713bc) '
+a. 'date' -32bits --date only willnot store time
+b. 'time' -64bits -- defaults to time without time zone -microsecond precision
+c. 'time with timezone' - 96-bits date and time with time zone microsecond precision
+d. 'timestamp with time zone' -64 bits 
+e. 'timestamp without timezone' -64 bits
+f. 'interval' -96 bits -range of time 
+
+Boolean - abits true 1 on | false 0 off
+
+Geometric Types - lines, circles, polygons, etc.
+Network Address Types
+ a. 'cidr' - 7 or 19 bytes ipv4 and ipv6
+ b. 'inet' -7 or 19 bytes ipv4 and ipv6 hosts and networks
+ c. 'macaddr' --48 bits i.e 52:54:00:20:6c:41
+ 
+xml
+arrays
+etc
+
+numeric,strings dates and types key data types.
+ 
+##Create
+1. Limited to 63 characters for the definition of objects 
+2. Identifies (dbobjects) must begin with alpha charcters
+3. Used to create db objects db,tables,indexes,functions, etc.
+
+Note PostgresSql Hierarchy
+1. DB
+ 2. -Schema(s) (Optional) one db may contain one or more schema. Default schema is 			       named public
+  3.  -Objects (Tables,Functions, Triggers, etc.)
+  
+Note ALl DBS have: 'public' and 'pg_catalog' schemas 
+Note All user|roles have 'Create' & 'Usage' access to the public schema for all dbs
+Note Create distinct schemas if security beyond 'public' is necessary
+
+Tasks:
+ 1. DB creation
+  a. Create a user named: 'linuxcbt' with 'createrole createdb' rights
+  a1. createuser -e -U postgres bhavesh
+  b. create a db named testing
+  b1. create database testing
+  c. Create a table named 'linuxcbtmessages'
+   c1. Create table linuxcbtmessages (date date);
+  d. Create a user named 'bhavesh2' with usage rights
+   d1. 'create role bhavesh2 login'
+  e. Create a schema named: logs
+   e1. create schema logs;
+
+Create database test template linuxcbt - templatedb name "linuxcbt"
+	no active sessions must be going in order for template process to work
+
+testing:--
+create database bhavesh
+create scheme bhavesh.logs
+create table bhavesh.logs.linuxcbtmessages (date date);
+
+schema created by one user in same database is not accessible to another user in the ssame database
+
+## ALter
+1. Changes Object (DB|Schema|Table|Index|etc.) --Name|Structure|Owner
+
+renaming a database:-
+alter database linuxcbt rename to linuxcbt2
+
+change db ownership:-
+alter database linuxcbt owner to username
+
+alter table linuxcbt rename to messages		changes the table name to messages
+
+#alter table stucter:- 
+	alter table messages alter column date set data type timestamp;
+		     (tablename)	(column) 
+
+alter table messages adds ident text; adds, sequentially to the end of the table 
+
+
+droppping a column will remove the data in it be aware
+alter table messages drop column if exists ident
+
+#alter role bhavesh superuser	this can be only given by superuser role
+
+for creating unique constrains for multiple fields
+#create table messages (date date, id bigint, messages text, unique(id,message));
+
+create table messages (date date, id int Primary key);
+
+foregin key id in messagescategories is linked to id in messages categories
+
+create table messagescategories (id int refernces messages(id), category text;)
+
+check constrains: - it check the given value for certain crieteria to match
+
+create table messages (date date NOT NULL, id numeric CHECK (id > 0));
+#####################################
+from postgrescbt
+#####################################
+###Features of PostgreSQL###
+
+1. Object Relational Database Management System (ORDBMS)
+ a. Objects can be related in a hierarchy: Parent -> Child
+
+2. Transactional RDBMS:
+Note: Transactional statements must execute: ALL or NONE
+  a. SQL statements have implicit: BEGIN; COMMIT; statements
+  b. SQL statements may also have explicit: BEGIN; COMMIT; statements
+
+3. Note/Feature:
+  a. Developed originally @ UC Berkeley
+
+4. One process per connection - auto-spawns per new connection
+  a. managed by master process: 'postmaster'
+
+5. Processes use only ONE CPU/Core
+  a. Note: OS/Distro may spawn new connection on a different CPU/core
+
+6. Multiple helper processes, which appear as 'postgres' instances, run always
+  a. Stats collector
+  b. Background writer
+  c. Autovacuum - clean-up/space reclaimer
+  d. WALsender - write ahead log
+
+7. Max DB Size: Unlimited - limited by OS & available storage
+Note: Consider deploying on 64-bit platform
+
+8. Max Table Size: 32TB - stored as multiple: 1GB files
+9. Max Row Size: 400GB
+10. Max Col Size: 1GB
+11. Max Indexes on a table: Unlimited
+12. Max Identifier (DB objects (table|column names, etc.): 63-bytes
+Note: The limitation is extensible via source code
+13. Default Listener: TCP:5432 
+  a. You may install PostgreSQL as a non-privileged user
+14. Users are distinct from OS users - i.e. MySQL
+15. Users are shared across DBs
+16. Inheritance 
+  a. Tables lower in hierarchy may inherit columns from higher tables
+  b. Caveat: No unique constraints or foreign keys support
+17. Case-insensitive commands - sans double quotes -i.e. 'select * from Syslog;'
+18. Case-sensitive commands - with double quotes - i.e. 'select & from "Syslog";'
+19. Three Primary Config Files: $POSTGRESROOT/data/*.conf
+  a. 'pg_hba.conf' - controls host/user/DB connectivity
+  b. 'postgresql.conf' - general settings
+  c. 'pg_ident.conf' - user mappings
+20. Integrated Log Rotation|Management - Log Collection - 'postgresql.conf'
+  a. Criteria: Age | Size
+
+###Installation###
+Features:
+ 1. Download bin file from Enterprise DB
+
+Tasks:
+ 1. Install
+Note: You may optionally indicate that data files be stored independently of the source tree
+Note: A 'Database Cluster' is simply the management of more than 1 DB
+Note: Default is to start the RDBMS post-installation
+
+ 2. Explore the footprint
+  a. 'psql' - terminal monitor - i.e. akin to 'mysql'
+  b. 'createdb|dropdb' - creates|drops DB
+  c. 'createuser|dropuser' - creates|drops users
+  d. 'postgres' - server daemon
+  e. 'data/' - top-level data/config files/log files
+  f. 'data/pg_log/' - log files (default is: STDERR)
+  g. 'data/pg_xlog/' - Write Ahead Log (WAL) - maintains changes to DB files at all times
+  h. 'data/postmaster.opts' - contains startup options
+  i. '/etc/init.d/postgresql-9.0' - INITD manager
+
+Note: Files, execpt INITD file, are contained within: /opt/postgresql/version hierarchy
+
+ 3. Provide access to docs via Apache
+  a. 'ln -s /opt/PostgreSQL/9.0/doc/postgresql/html ./LinuxCBT/postgresqldocs '
+
+ 4. Update: $linuxcbt/.bashrc to reflect: /opt/PostgreSQL/9.0/bin - to access binaries
+
+Note: PostgreSQL clients default to submitting the currently logged-in user's name as the DB user name
+Note: A workaround for this is to export the PGUSER variable, setting it to an existing DB user
+'export PGUSER=postgres'
+
+### 'psql' ###
+Features:
+ 1. (Non)Interactive usage - i.e. 'mysql' terminal monitor
+ 2. Command history - up|down arrows
+ 3. Tab completion
+ 4. Commands terminate with semicolon and may wrap lines and have whitespace separators
+ 5. Defaults to supplying the currently-logged-in user
+
+Tasks:
+ 1. Explore 'psql'
+  a. 'psql --version'
+  b. 'psql -l -U postgres' - lists DBs then exits
+Note: PostgreSQL installs 3 default DBs:
+ 1. 'postgres' - contains user accounts DB, etc.
+ 2. 'template0' - vanilla, original DB
+ 3. 'template1' - Copy of template0, and may be extended, and is used to generate new DBs
+  c. 'psql' - enters interactive mode
+   c1. trailing '#' indicates: super user: 'postgres'
+  d. '\h' - returns SQL-specific help
+  e. '\?' - returns 'psql'-specific help - i.e. usable metasequences
+  f. '\l[+]' - returns list of DBs
+  g. '\du[+]' - returns list of users in system DB
+  h. '\!' - returns user to $SHELL
+  i. '\! command' - executes a specific command - non-interactively
+Note: Typical $SHELL semantics apply
+  j. '\i filename' - executes command(s) in the file - i.e. 'psql' or SQL commands
+Note: Multiple commands can be run with one reference. Terminate set with: ';', use space between commands.
+
+  k. '\c DBNAME [REMOTE HOST]' - connects to different DB and optionally different host
+Note: current DB is echoed in the prompt. i.e. postgres=# || template1=#
+
+  l. '\d[S+]' - reveals tables, views, sequences and various DB objects
+  m. '\q' - quits
+
+
+###Access Controls###
+
+Features:
+ 1. Users - Roles (Roles are users or groups)
+ 2. Config Files:
+  a. 'pg_hba.conf | pg_ident.conf | postgresql.conf'
+ 3. Central accounts DB shared ALL DBs - accounts MUST be unique
+ 4. Default setup includes 1-User - 'postgres' - Super User
+ 5. Privileges are managed with: 
+   a. 'GRANT | REVOKE'
+   b. 'ALTER'
+   c. 'CREATE | DROP ROLE|USER'  - SQL Statements (Key Words)
+   d. 'createuser|dropuser' - commands - wrappers to SQL statements
+ 6. DB Object creators own those objects and can assign privileges to them
+ 7. To Change DB object ownership use: ALTER - sql key word
+ 8. Special role named: 'PUBLIC' grants assigned privilege to ALL system users
+  a. 'PUBLIC' is a special group, to which ALL users are members
+
+Tasks:
+ 1. Create another super user
+  a. '\du' - enumerates current users|roles
+  b. 'createuser -e -s -U postgres linuxcbt' - echoes SQL commands to STDOUT
+  c. Confirm inability to connect to posgres as new role: 'linuxcbt'
+  d. Set 'linuxcbt' password: '\password linuxcbt' - permits setting of user's password
+Note: Caveat: Upon connection to postgres, the client 'psql' attempts to connect the user to a DB named the $PGUSER
+
+ 2. Drop newly-created super user: 'linuxcbt'
+  a. 'dropuser -e -U postgres linuxcbt' - removes user from DBMS
+
+ 3. Examine remote, TCP-based connectivity
+
+
+###Logging###
+Features:
+ 1. Three types of logs supported: 
+   a. 'stderr'(Default)
+   b. 'csvlog' - import into spreadsheets | DBs
+   c. 'syslog'
+ 2. Controlled via: $POSTGRESROOT/data/postgresql.conf
+ 3. Simultaneous logging
+ 4. Ability to control verbosity
+ 5. Automatic log rotation based on criteria: age | size
+ 6. Logs handled by the included logger (stderr,csvlog) are stored in: $POSTGRESROOT/data/pg_log
+Note: Syslog-handled messages are routed according to syslog rules: /etc/rsyslog.conf
+ 7. The first process launched by master process
+
+Tasks:
+ 1. Explore: $POSTGRESROOT/data/postgresql.conf
+
+ 2. Configure syslog
+  a. Update syslog configuration for: 'LOCAL0' facility - Consider updating: LogRotate
+  b. Update: $POSTGRESROOT/data/postgresql.conf - 'stderr,syslog'
+ 
+ 3. Configure csvlog
+  a. Append: 'csvlog' to log_destination VAR: $POSTGRESROOT/data/postgresql.conf
+
+Note: Caveat: Syslog is UDP-based and is subject to loss of messages
+
+
+### Common Data Types ###
+Features:
+ 1. Allow us to control the type of data on a per column basis
+
+Types:
+ Numeric:
+  a. 'smallint' - 16-bits (2-bytes) - whole numbers
+  b. 'int' - integer - 32-bits (4-bytes) - whole number
+  c. 'bigint' - Big Integer - 64-bits - whole numbers only
+  d. 'numeric[(precision,scale)]'
+   d1. precision = sig figs
+   d2. scale = number of values to the right of the decimal point
+Note: 'numeric' sans precision or scale supports up to: 1000 digits of precision
+  e. 'real' - 32-bits - variable - 6 decimal digits of precision
+  f. 'double precision' - 64-bits - variable - 15 decimal digits of precision
+  g. 'serial' - 32-bits (2^31) signed - auto-incrementing
+  h. 'bigserial' - 64-bits (2^63) - auto-incrementing
+
+ Money:
+  a. 'money' - 64-bits - 2^63 signed: i.e. -9EB - 9EB
+
+ Strings - Text
+  a. 'text' - varchar - unlimited - preferred character storage type within PostgreSQL
+  b. 'char(n)' - fixed-length, blank-padded if value stored is < 'n' length
+   b1. i.e. 'char(9)' - 'linuxcbt' -> stored as: 'linuxcbt '
+Note: char(n) truncates values that are > 'n' lenght
+   b2. i.e. 'char'-> 'char(1)' - effectively becomes a 1-character field
+  c. 'varchar(n)' - variable length with 'n' limit, if 'n' is present - Does NOT blank-pad
+   c1. i.e. 'varchar(9)' - 'linuxcbt' -> stored as: 'linuxcbt'
+   c2. i.e. 'varchar' -> variable length - Does NOT blank-pad
+
+Note: Use 'text' or 'varchar' when storing strings
+
+  Dates & Time - Uses 'Julian Dates (from 4713 BC) -> 10^5+ years ahead' - in date calculations
+   a. 'date' - 32-bits - date only
+   b. 'time' - 64-bits - defaults to time 'without time zone' - microsecond precision
+   c. 'time with time zone' - 96-bits - date & time with time zone - microsecond precision
+   d. 'timestamp with time zone' - 64-bits - ...
+   e. 'timestamp without time zone' - 64-bits - ...
+   f. 'interval' - 96-bits - range of time - microsecond precision
+
+  Boolean - 8-bits - True(1)(on) | False(0)(off)
+  Geometric Types - lines, circles, polygons, etc.
+  Network Address Types
+   a. 'cidr' - 7 or 19-bytes - IPv4 and IPv6 networks - i.e. '192.168.75.0/24' || '2002:4687:db25:2/64'
+   b. 'inet' - 7 or 19-bytes - IPv4 and IPv6 hosts and networks
+   c. 'macaddr' - 48-bits - i.e. 00:11:11:5b:70:53, 0011.115b.7053 , etc.
+  XML
+  Arrays
+  et cetera.
+
+
+###CREATE###
+Features:
+ 1. Limited to 63 characters for the definition of objects
+ 2. Identifiers (DB Objects) MUST begin with alpha characters
+ 3. Used to create: DBs, Schemas, Tables, Indexes, Functions, etc.
+
+Note: PostgreSQL Hierarchy:
+ 1. DB
+  2. -Schema(s) (Optional) - Default schema is named: 'public'
+   3.  -Objects (Tables, Functions, Triggers, etc.)
+Note: ALL DBs have: 'public' and 'pg_catalog' schemas
+Note: ALL users|roles have: 'CREATE' & 'USAGE' access to the 'public' schema for ALL DBs
+Note: Create distinct schemas if security beyond 'public' is necessary
+
+Tasks:
+ 1. DB Creation
+  a. Create a user named: 'linuxcbt' with 'CREATEROLE CREATEDB' rights
+  a1. 'createuser -e -U postgres linuxcbt'
+  b. Create a DB named 'linuxcbt'
+   b1. 'CREATE DATABASE linuxcbt;'
+  c. Create a Table named: 'linuxcbtmessages'
+   c1. 'CREATE TABLE linuxcbtmessages (date date);'
+  d. Create a user named 'linuxcbt2' with USAGE rights
+   d1. 'CREATE ROLE linuxcbt2 LOGIN;'
+  e. Create a SCHEMA named: 'logs'
+   e1. 'CREATE SCHEMA logs;'
+  f. Create a TABLE named: 'linuxcbtmessages' within the SCHEMA: 'linuxcbt.logs'
+   f1. 'CREATE TABLE logs.linuxcbtmessages (date date);'
+   f2. '\d linuxcbt.logs.linuxcbtmessages' - confirms the description of the table
+  g. Check whether user: 'linuxcbt2' has access to: 'linuxcbt.logs' SCHEMA
+
+
+###DROP###
+Features:
+ 1. Removes objects: DBs, Schemas, Tables, Functions, Triggers, etc. from ORDBMS
+ 2. Available from the $SHELL and within SQL interpreter: 'psql'
+
+Tasks:
+ 1. Drop DB 'linuxcbt2'
+Note: Objects that are currently in-use will NOT be dropped by default
+  a. 'drop database linuxcbt2;'
+Note: Dropping DBs will remove ALL sub-objects, including, but not limited to:
+ a. Schemas
+ b. Tables
+ c. Triggers
+ d. Functions, etc.
+
+ 2. Drop Tables
+  a. 'DROP TABLE linuxcbt2messages;' - removes table if current user is owner or SUPERUSER
+  b. 'DROP TABLE linuxcbtmessages;' - as user: 'linuxcbt2' - fails due to lack of permissions
+  c. 'CREATE DATABASE TEST TEMPLATE linuxcbt;' - templates DB named: 'linuxcbt'
+Note: No active sessions must be ongoing in order for template process to work to ensure consistency with duplicated DB
+  c. 'dropdb TEST'
+Note: Objects created within the 'public' schema are not readily accessible to other users sans the usage of the 'GRANT' command
+
+  d. Drop schema: 'linuxcbt.logs'
+   d1. 'DROP SCHEMA logs;' - fails because there is a dependent table: 'linuxcbtmessages'
+   d2. 'DROP SCHEMA logs CASCADE;' - forces recursive removal of objects
+
+  e. Re-create structure & DROP:
+   e1. 'CREATE DATABASE linuxcbt2;'
+   e2. '\c linuxcbt2 && CREATE SCHEMA logs'
+   e3. 'CREATE TABLE linuxcbt2.logs.linuxcbt2messages (date date);'
+   e4. 'DROP DATABASE linuxcbt2;'
+
+
+###ALTER###
+Features:
+ 1. Changes Object (DB|Schema|Table|Index|etc.) - Name|Structure|Owner
+
+
+Tasks:
+ 1. Confirm our environment by ensuring requisite objects
+ 2. Change DB Name
+  a. 'ALTER DATABASE linuxcbt RENAME TO linuxcbt2;'
+Note: ALTER should be used sans connections to target objects
+ 3. Change DB Ownership
+  a. 'ALTER DATABASE linuxcbt2 OWNER TO linuxcbt2;' - changes ownershipt to role: 'linuxcbt2'
+ 4. Test ability to DROP DB as new owner
+  a. 'DROP DATABASE linuxcbt2;'
+
+ 5. Create and Rename Table: 'linuxcbt2messages'
+  a. 'CREATE TABLE linuxcbt2messages (date date);' - creates table 'public.linuxcbt2messages'
+  b. 'ALTER TABLE linuxcbt2messages RENAME TO messages;'
+ 6. Alter Table Structure: 'messages'
+  a. 'ALTER TABLE messages ALTER COLUMN date SET DATA TYPE timestamp;'
+Note: Structurual (columnar) changes may result in data loss if target column type does NOT support source column data
+  b. 'ALTER TABLE messages ADD ident text;' - ADDS, sequentially, a new column to table
+Note: Column names MUST be unique and may not be added more than once
+  c. 'ALTER TABLE messages DROP COLUMN IF EXISTS ident;' - removes column named: 'ident' if exists
+Note: Be forewarned, that the dropping of a colum WILL remove existing DATA in the column
+
+ 7. ALTER existing ROLE
+  a. 'ALTER ROLE linuxcbt2 SUPERUSER;' - makes user 'linuxcbt2' a SUPERUSER
+Note: This will ONLY work if you execute as a SUPERUSER. i.e. 'postgres'
+  b. 'ALTER ROLE linuxcbt RENAME TO linuxcbt4;' - renames user: 'linuxcbt' TO 'linuxcbt4'
+Note: This will unset the user's MD5 password
+Note: This will update ownership of objects. i.e. DB::Test is now owned by: 'linuxcbt4'
+  c. 'ALTER ROLE linuxcbt4 RENAME TO linuxcbt;'
+
+
+###Constraints####
+Features:
+ 1. Enforce storage requirements: per table | column
+ 2. May be applied per column
+ 3. Multiple constraints may be bound to a single column
+ 4. Optionally, constraints may be defined at the table level for one or more columns
+ 5. Default column rule is to accept NULLs
+
+Data Types - basic constraint
+ a. Restricts permitted column values
+  i.e. 'date', 'smallint', 'char(9)', etc.
+
+Not-Null | NULL Contraints
+ a. Define a table using NOT NULL
+  a1. 'create table messages (date date NOT NULL);'
+ b. Alter table adding a new column (id) with constraint: NULL
+  b1. 'ALTER TABLE messages ADD id in NULL;'
+
+Unique Constraint - Applies to any type of column: i.e. 'int', 'numeric', 'text', etc.
+ a. Define a table with a UNIQUE 'id' column
+  a1. 'create table messages (date date, id bigint UNIQUE); '
+Note: The creation of UNIQUE contraints generates implicit btree indices on column(s)
+
+ b. Define table with multiple UNIQUE columns 
+  b1. 'create table messages (date date, id bigint, message text, UNIQUE(id,message) );'
+Note: This ensures that the combination of: 'id' && 'message' is unique
+Sample Records that do NOT break the UNIQUE contraint:
+2010-10-14 1 message
+2010-10-14 2 message
+2010-10-14 3 message
+
+Sample Records that DO break the UNIQUE contraint:
+2010-10-14 1 message
+2010-10-14 1 message
+2010-10-14 2 message
+
+Primary Key Constraint - Combination of: 'UNIQUE' & 'NOT NULL' Constraints
+ a. Create a table with primary key constraint on 1 column
+  a1. 'create table messages (date date, id numeric PRIMARY KEY); '
+ b. Create a table with primary key constraint on 2 columns
+  a1. 'create table messages (date date, id numeric, message text, PRIMARY KEY(id, message) ); '
+Note: Standard SQL recommends that each table contain a primary key
+
+
+Foreign Key Constraint - Links Tables - Referential Integrity
+ a. Create messages table as parent table
+  a1. 'create table messages (date date, id int PRIMARY KEY); '
+ b. Create subordinate table to categorize messages in parent table
+  b1. 'create table messagesCategories (id int REFERENCES messages(id), category text;'
+
+Check Constraint - confirms column values based on Boolean criteria:
+'CHECK (expr)'
+ a. Ensure that (id) contains values greater than 0
+  a1. 'create table messages (date date NOT NULL, id numeric CHECK (id > 0) );'
+ b. Create the same constraint with a name
+Note: If unnamed, PostgreSQL will auto-name the constraint
+  b1. 'create table messages (date date NOT NULL, id numeric CONSTRAINT positive_id CHECK (id > 0) ); '
+
+ c. Create CHECK constraint which summarizes ALL rules for ALL columns
+  c1. 'create table messages (date date, id numeric CHECK (date IS NOT NULL AND id > 0 AND id IS NOT NULL) ); 
+
+###INSERT###
+Features:
+ 1. Populates tables via various methods
+ 2. PostgreSQL inserts left-to-right
+
+Usages:
+ 1. Insert into table with precise number of columns
+  a. 'INSERT INTO messages VALUES ('2010-10-14','1');'
+ 2. Insert using specified field(s)
+  a. 'INSERT INTO messages (date) VALUES('2010-10-14');'
+ 3. Insert more columns than are defined in the table - WILL NOT WORK
+  a. 'INSERT INTO messages VALUES('2010-10-14', '5', 'Log Message'); '
+
+ 4. Insert multiple records wholesale
+  a. 'INSERT INTO messages VALUES ('2010-10-14','6'),('10/14/2010','7'),('10/14/2010', '8'); '
+Note: The date format in record 3 causes the entire transaction to fail, due to implicit:
+BEGIN & COMMIT statements
+
+ 5. Test Foreign Key Constraint
+  a. 'create table messagesCategories (id int REFERENCES messages(id), category text);'
+Note: Because messages table does not have UNIQUE or PRIMARY KEY constraints on (id) column, the Foreign Key constraint will fail
+Note: Rectify by defining a Primary Key on messages table OR inserting unique values into (id)
+Note: PostgreSQL raises error and denies creation of subordinate table
+
+  b. Insert data into dependent table
+   b1. 'INSERT INTO messagescategories VALUES ('4','VSFTPD'); ' - fails constraint
+   b2. 'INSERT INTO messagescategories VALUES ('3','VSFTPD'); ' - passes constraint
+Note: Foreign Key constraint need not be based on a numeric
+
+
+ 6. Test Primary Key Constraint
+  a. 'INSERT INTO messages VALUES ('10/14/2010','3');' - fails constraint
+  b. 'INSERT INTO messages VALUES ('10/14/2010','4'); - passes constraint
+Note: Summarizes both: UNIQUE & NOT NULL constraints
+
+
+
+###COPY Command###
+Features:
+ 1. Server-side command, unlike: '\copy' which is client-side
+ 2. Wholesale inserts (imports) | Exports from | to a file
+ 3. File MUST be on the server
+ 4. File MUST be viewable by the 'postgres' user
+ 5. Uses absolute $PATH to reference the file
+ 6. Defaults to importing based on: TAB separator|delimiter
+ 7. Able to copy the results of 'SELECT' query
+ 8. Does NOT work with VIEWS but will work with SELECT of VIEW
+ 9. Appends records to table
+
+Tasks:
+ 1. Generate Import File
+  a. 'for i in `seq 100`; do echo `date +%F` $i; done > ~linuxcbt/LinuxCBT_feat._PostgreSQL_Edition/messages.data'
+
+ 2. Import Data
+  a. 'COPY messages FROM '/home/linuxcbt/LinuxCBT_feat._PostgreSQL_Edition/messages.data' DELIMITER ' '; '
+Note: Truncate Table when necesary to clear data
+TRUNCATE table messages CASCADE; - removes data from dependent and parent tables
+
+  b. Vary delimiter
+   b1. 'awk '{ print $1","$2 }' messages.data ' - formats output with comma delimiter
+   b2. 'TRUNCATE table messages CASCADE;'
+   b3. 'COPY messages FROM '/home/linuxcbt/LinuxCBT_feat._PostgreSQL_Edition/messages.data.csv' DELIMITER ','; '
+
+ 3. Export Data
+  a. 'COPY messages TO '/home/linuxcbt/LinuxCBT_feat._PostgreSQL_Edition/messages.data.semicolon' DELIMITER ';';' - export with semicolon delimiter
+Note: Ensure that user: 'postgres' may write to target directory
+Note: Export does NOT append redirect, rather, it clobbers (overwrites) target file
+
+
+###SELECT###
+Features:
+ 1. Performs queries: i.e. calculations, system stats, data retrieval
+ 2. Retrieves data from objects: table(s), view(s), etc.
+
+Usage:
+ 1. 'SELECT * FROM messages; ' - Returns ALL rows from table: 'messages';
+ 2. 'SELECT rolname, rolcreaterole FROM pg_roles;' - returns just those 2 columns
+ 3. 'SELECT rolcreaterole, rolname FROM pg_roles;' - returns just those 2 columns, reversed
+ 4. 'SELECT rolname AS r, rolcreaterole AS rr FROM pg_roles;' - Constructs aliases for columns
+ 5. 'SELECT * FROM pg_roles WHERE rolname LIKE '%linuxcbt%';' - Simple string comparison
+ 6. 'SELECT * FROM messages ORDER BY id DESC;' - Changes sort order ON (id) column
+ 7. 'SELECT DISTINCT date FROM messages;' - Filters unique values per column, by not returning redundancies
+ 8. LIMITS & OFFSETS
+  Features: Ability to extract a subset of records using SELECT
+  Note: Use 'ORDER BY' clause when using 'LIMIT' to influence sort order because SQL does not guarantee sort order
+  a. 'SELECT * FROM messages ORDER BY id asc LIMIT 10;' - returns first 10 records
+  b. 'SELECT * FROM messages ORDER BY id desc LIMIT 10;' - returns last 10 records
+  c. 'SELECT * FROM messages ORDER BY id LIMIT 10 OFFSET 10;' - returns records: 11-20
+  d. 'SELECT * FROM messages ORDER BY id LIMIT 10 OFFSET 9;' - returns records: 10-19
+  e. 'SELECT * FROM messages ORDER BY id LIMIT 11 OFFSET 9;' - returns records: 10-20
+  f. 'SELECT * FROM messages ORDER BY id desc LIMIT 10 OFFSET 10;' - returns records: 90-82
+
+
+###JOINS###
+Features:
+ 1. Aggregates related data across tables: 2 or more
+ 2. Default: CROSS JOIN - i.e. 'select * from messages, messagescategories;'
+  Note: CROSS JOIN produces: 'N * M' rows of data
+
+Tasks:
+ 1. Populate the 'messagescategories' dependency (lookup) table
+  a. 'INSERT INTO messagescategories VALUES (1,'VSFTPD'),(2, 'SSHD'),(3, 'XINETD'); '
+
+ 2. Standard JOIN using 'WHERE' Clause:
+  a. 'SELECT * from messages AS m, messagescategories AS mc WHERE m.id = mc.id;' - INNER JOIN using 'WHERE' Clause
+  b. Create JOIN with a third table
+   b1. 'create table messagesalerts (id int NOT NULL, alert text NOT NULL);'
+   b2. 'INSERT INTO messagesalerts VALUES (1, 'DEBUG'), (2, 'INFORMATIONAL'), (3, 'WARNING');'
+   b3. 'SELECT * from messages AS m, messagescategories AS mc, messagesalerts AS ma WHERE m.id = mc.id AND m.id = ma.id;'
+   b4. 'SELECT m.id, date, category, alert from messages AS m, messagescategories AS mc, messagesalerts AS ma WHERE m.id = mc.id AND m.id = ma.id;' - Returns one (id) column in result set
+
+  3. INNER JOINs
+   a. 'select * FROM messages AS m INNER JOIN messagescategories ON m.id = messagescategories.id;' - Functionally equivalent to JOIN with 'WHERE' Clause
+   b. 'select * FROM messages AS m INNER JOIN messagescategories USING (id);' - Same as above but suppresses duplicate (id) column
+   c. 'select m.id, m.date, category FROM messages AS m INNER JOIN messagescategories USING (id);'
+
+  4. LEFT JOINs
+   Features: Matches (id) from left table and includes only (id) from right table that match
+   a. 'select * from messages as m LEFT JOIN messagescategories on m.id = messagescategories.id;'
+   b. 'select * from messages as m LEFT JOIN messagescategories USING (id);' - Same as above but suppresses duplicate (id) column
+   c. 'select m.id,m.date,messagescategories.category from messages as m LEFT JOIN messagescategories USING (id);' - Same as above but suppresses duplicate (id) column
+
+  5. RIGHT JOINs
+   Features: Matches (id) from right table and includes ONLY (id) from left table that match
+   a. 'select * from messages as m RIGHT JOIN messagescategories on m.id = messagescategories.id;'
+   b. 'select * from messages as m RIGHT JOIN messagescategories USING (id);'
+   c. Insert a new category into table: 'messagescategories'
+    c1. 'INSERT INTO messagescategories VALUES (101, 'UNKNOWN'); '
+
+Note: Foreign Key Constraint prohibits the creation of values in: 'messagescategories' that DO NOT exist in table: 'messages'
+   d. 'select m.id,m.date,messagescategories.category from messages as m RIGHT JOIN messagescategories USING (id);'  - Same as above but suppresses duplicate (id) column
+
+   e. 'select m.id,m.date,messagescategories.category from messages as m INNER JOIN messagescategories USING (id) ORDER BY category;'  - Same as above but suppresses duplicate (id) column and orders by 'category' ASC
+
+###VIEWS###
+Features:
+ 1. Presents consolidated query-driven interfaces to data
+ 2. They may be based on 1 or more tables
+ 3. Not a real objects; rather, query is executed upon invocation
+ 4. Supports temporary VIEWS - lasts for session duration
+ 5. Column names are auto-derived from the query
+
+Tasks:
+ 1. Define VIEW based on INNER JOIN of: 'messages' & 'messagescategories'
+  a. 'CREATE VIEW messagesandcategories AS SELECT * FROM messages INNER JOIN messagescategories USING (id); ' - creates permanent view of inner-joined tables
+  b. 'SELECT * FROM messagesandcategories;' - executes the VIEW
+ 2. Insert Records to both: 'messages' & 'messagescategories' & re-query VIEW
+  a. 'INSERT INTO messagescategories VALUES(4, 'KERNEL'); '
+
+ 3. Use Aliases
+  a. 'SELECT id AS i, date AS d, category AS c FROM messagesandcategories ORDER BY id;'
+ 4. Update VIEW
+  a. 'CREATE OR REPLACE VIEW messagesandcategories AS SELECT id AS i, date AS d, category AS c FROM messages INNER JOIN messagescategories USING (id);' - Creates or Updates VIEW
+  b. 'CREATE OR REPLACE VIEW messagesandcategories (i,d,c)AS SELECT id, date, category FROM messages INNER JOIN messagescategories USING (id); '
+
+  5. Create TEMP VIEW
+   a. 'CREATE TEMP view messagesandalerts (i,d,a) AS SELECT id,date,alert FROM messages INNER JOIN messagesalerts USING(id);'
+Note: TEMP VIEWs are not assigned to the default: 'public' schema
+Note: TEMP VIEWs are NOT available to other sessions
+
+  6. Create TEMP VIEW based on a single table
+   a. 'CREATE TEMP view messagesdates AS SELECT date FROM messages; '
+
+
+
+###Aggregates###
+Features:
+ 1. Compute single results (scalars) from multiple inputs (rows)
+ 2. Values are computed after 'WHERE' has selected rows to analyze
+  a. Consequently, aggregates may not be used within: 'WHERE" clause
+  b. However, aggregates CAN be used with: 'HAVING' clause
+ 3. 'HAVING' is calculated post-aggregate computation(s)
+
+Examples:
+ 1. 'SELECT count(*) FROM messages;' - counts rows
+  a. 'SELECT count(date) FROM messages;' - counts rows as well
+ 2. 'SELECT sum(id) FROM messages;' - Adds values from each row
+ 3. 'SELECT avg(id) FROM messages;' - Averages values across ALL rows
+ 4. 'SELECT min(id) FROM messages;' - Finds min value across ALL rows
+ 5. 'SELECT max(id) FROM messages;' - Finds max value across ALL rows
+Note: 'min' and 'max' work with both numeric and date types
+ 6. 'SELECT min(id), max(id), avg(id), count(id) FROM messages;' - queries multiple aggregates simultaneously
+
+Examples with WHERE, GROUP BY & HAVING
+ 7. 'SELECT date, min(id) FROM messages GROUP BY date;' - groups 'min(id)' by 'date'
+Note: When referencing non-aggregated and aggregated columns in the same query, use the 'GROUP BY' clause to sort aggregated data by non-aggregated data
+
+ 8. 'SELECT date, min(id) FROM messages WHERE id < 51 GROUP BY date;' - restricts aggregate 'min(id)' to rows containing (id) < 51
+ 9. 'SELECT date, min(id) FROM messages WHERE id < 51 GROUP BY date HAVING min(id) < 30;' - Post-aggregate, restricts returned results to (id) < 30
+
+10. 'SELECT date, min(id), max(id) FROM messages WHERE id < 51 AND id > 40 GROUP BY date;' - Extract between 40>(id)<51
+
+Boolean Aggregates:
+ 1. 'ALTER TABLE messages ADD enabled boolean NOT NULL DEFAULT false;' - extends table to include a boolean column: 'enabled'
+ 2. 'SELECT bool_and(enabled) FROM messages;' - returns TRUE if ALL are true
+ 3. 'SELECT bool_or(enabled) FROM messages;' - returns TRUE if 1 or more are true
+
+String Aggregates:
+ 1. 'ALTER TABLE messages ADD message text NOT NULL DEFAULT 'syslog message';'
+ 2. 'SELECT string_agg(message, ' ') FROM messages;' - concatenates string(text) values with single-space delimiter
+
+###UPDATE###
+Features:
+ 1. Updates table(s) based on criteri(on|a)
+ 2. Requires: name of table, column(s) to update, criteri(on|a) (WHERE) clause
+ 3. Updates table and sub-tables unless: 'ONLY' keyword is used
+ 4. Output indicates number of records updated
+ 5. WILL UPDATE ALL RECORDS if missing CRITERI(on|a)
+
+Examples:
+ 1. 'UPDATE messages SET enabled='t' WHERE id = 100;' - updates 1 record to true
+ 2. 'UPDATE messages SET enabled='t' WHERE enabled = 'f'; updates many records to false
+ 3. 'UPDATE messages SET enabled='f' WHERE id >= 50;' - updates record with (id) >= 50 to false
+ 4. 'UPDATE messages SET enabled='1' WHERE id >=50;' - updates records with (id) >= 50 to true
+ 5. 'UPDATE messages SET enabled=0, message = 'new message' WHERE id = 100;' - updates multiple columns WHERE id = 100;
+ 6. 'UPDATE messages SET enabled = DEFAULT;' - resets column 'enabled' to default value for ALL rows
+ 7. 'select * from messages where message <> 'syslog message';' - checks for rows where column 'message' IS NOT 'syslog message'
+ 8. 'UPDATE messages SET message = DEFAULT WHERE id = 100;'
+ 9. 'UPDATE messages SET message = DEFAULT RETURNING * WHERE id = 100;' - returns ALL columns
+Note: 'RETURNING' - is PostgreSQL-specific
+Note: It is equivalent to running a post-UPDATE SELECT query
+
+10. 'UPDATE messages SET id = id+1 WHERE id = 102;' - increments (id) by 1
+11. 'UPDATE messages SET id = id+1 WHERE id = 100 RETURNING *;' - ERROR because of duplicate
+12. 'UPDATE messages SET id = id+1 WHERE id = 101 RETURNING *;' - ERROR because of foreign key constraint
+
+13. 'UPDATE messages set date = 'now' RETURNING *;'
+
+###DELETE###
+Features:
+ 1. Removes entire records based on criteri(a|on)
+ 2. Does NOT remove individual column(s)
+ 3. Requires: name of table, and preferably criteri(a|on) (WHERE) clause
+ 4. Deletes recursively: Use 'ONLY' to avoid deleting child tables
+ 5. Returns number of (count) records deleted
+
+Examples:
+ 1. 'DELETE FROM messages WHERE id = 103;' - removes a single record IF EXISTS
+ 2. 'DELETE FROM messages WHERE date = '2010-10-18' AND enabled = 'f' AND id >= 50;' - removes records with (id) >=50
+Note: Fails because of foreign key constraint
+ 3. 'DELETE FROM messages WHERE date = '2010-10-18' AND enabled = 'f' AND id >= 50 AND id < 101;' - removes records with (id) >=50
+  a. 'SELECT count(*), min(id), max(id) FROM messages;'
+ 4. 'DELETE FROM messages WHERE id >= 40 AND id <= 50 RETURNING *;'
+
+ 5. 'DELETE FROM messages WHERE enabled = '1' RETURNING *;' - Boolean criterion
+Note: Foreign Key constraint prohibits the entire transaction
+ 6. 'DELETE FROM messages WHERE enabled = '1' AND id >= 30 AND id !=101 RETURNING *;'
+ 7. 'DELETE FROM MESSAGES;' - deletes ALL rows and rows of sub-tables recursively
+  a. 'DROP CONSTRAINT IF EXISTS messagescategories_id_fkey;' - remove constraint from dependent table
+
+ 8. Reconstitute 'messages' table to include auto-generating 'SERIAL' type on (id) column and re-populate with data
+  a. 'ALTER TABLE messages drop id CASCADE;' - drops column with CASCADE
+  b. 'ALTER TABLE messages add id serial;' - creates auto-sequence generator
+  c. 'for i in `seq 10000`; do echo `date +%F`; done > messages.date.10k' - generate 10k records
+  d. 'COPY messages (date) FROM '$PATH_TO/messages.date.10k';
+  e. 'SELECT COUNT(*) FROM messages;'
+
+
+
+###INDICES###
+Features:
+ 1. Speed data retrieval & writes (INSERT, UPDATE, DELETE)
+ 2. Indexes reference data locations, explicitly, for indexed columns, consequent reducing data retrieval time
+ 3. Without indices, SQL performs sequential table scans in search of data
+ 4. Create on columns that are frequently queried and/or JOINed
+ 5. Caveat: During creation, ONLY reads are permitted to table being indexed
+ 6. Max of 32 columns per index - multicolumn
+ 7. PostgreSQL auto-maintains indices
+
+Tasks:
+ 1. 'EXPLAIN select * from messages;' - explains (does not execute) plan to execute query
+ 2. 'EXPLAIN select * from messages where id = 4000;'
+ 3. Drop & Recreate messages table
+  a. 'DROP TABLE messages;'
+  b. 'CREATE TABLE messages (date date, id SERIAL);'
+  c. 'ALTER TABLE messages ADD primary key (id);' - generate btree index on: (id)
+
+ 4. Create an index on a column
+  a. 'ALTER TABLE messages ADD messageid type numeric NOT NULL;'
+  b. 'CREATE INDEX messages_id ON messages(messageid);'
+  c. 'explain ANALYZE select messageid, date from messages where messageid = 5990;' - 'ANALYZE' causes query to execute, suppressing the output, returning useful statistics
+
+  5. Enumerate Indices' info
+   a. '\di[S+]' - enumerates ALL indices within public schema
+  6. Drop Index
+   a. 'DROP INDEX messages_id;'
+
+###Built-In Functions###
+Features:
+ 1. Manipulate data in a variety of ways
+
+Tasks:
+ 1. Cover Math Functions
+  a. 'select abs(-5);'
+  b. 'select sqrt(25); || select sqrt(id) FROM messages'
+  c. 'select cbrt(125);'
+  d. 'select ceil(95.4);' - returns next highest integer
+  e. 'select floor(95.4);' - returns next lowest integer
+  f. 'select div(25,5);' - performs division - returns least integer
+  g. 'select log(1000);'
+  h. 'select power(4,3);' - raises 4 to the 3rd power
+  i. 'select random();' - returns random value between 0 and 1 - 10^-15
+  j. 'select round(35.4);' - rounds down or up
+  k. 'select trunc(95.456, 1);' - useful for normalizing floating point
+  l. 'select cos(0);' - returns 1 - other trig functions are available
+
+ 2. Cover Useful String Functions
+  a. 'select bit_length('test bunny');' - 80-bits
+  b. 'select bit_length(message) FROM messages;' - 112-bits
+  c. 'select char_length('test bunny');' - 10 chars
+  d. 'select char_length(message), message FROM messages;' - 14 chars
+  e. 'select lower('Test Bunny');' - normalizes output to be lower case
+  f. 'select lower(message) FROM messages;' - normalizes output to be lower case from column
+  g. 'select upper(message) FROM messages;' - normalizes output to be upper case from column
+  h. 'select message, initcap(message) FROM messages;' - Applies CAPS to first letter of each word
+  i. 'select overlay('test' placing 'xx' from 2);' - string replacement
+  j. 'select message, overlay(message placing '   ' from 1) FROM messages;' - applies to query
+  k. 'select trim(both ' ' from ' LinuxCBT ');' - trims leading & trailing, not between
+  l. 'select substring('syslog' from 4);'
+  m. 'select message, substring(message from 4) FROM messages;' - applies to table
+  n. 'select split_part('syslog message', ' ', 2);' - returns 2nd string using space delimiter
+  o. 'select initcap(split_part(message, ' ', 2)) FROM messages LIMIT 10;' - nested functions
+
+
+
+###Model: /var/log/messages###
+Features:
+ 1. Challenge of replicating a flat-file structure
+
+Tasks:
+ 1. Examine and model: /var/log/messages
+  a. Need: 'mId, mCatID, mTime (timestamp) transformation needed, mHost, mFacility, mMessage'
+ 2. Generate 'CREATE' statement
+  a. 'CREATE TABLE messages (mid BIGSERIAL PRIMARY KEY, mcatid smallint NOT NULL DEFAULT 1, mtime timestamp NOT NULL DEFAULT now(), mhost text NOT NULL DEFAULT 'Unknown Host', mfacility text NULL DEFAULT NULL, mmessage text NOT NULL DEFAULT 'NO MESSAGE' ); '
+ 3. Test 'INSERT' statement for sample record
+  a. 'INSERT INTO messages (mtime, mhost, mfacility, mmessage) VALUES ('Oct 17 07:53:42 2010', 'linuxcbtbuild1', 'kernel:', '[861929.262518] device eth0 left promiscuous mode)'); '
+
+ 4. Write Perl script to parse: /var/log/messages and transform data to suite PostgreSQL
+  a. Also include logic to extract: ':' from the end of the facility name. i.e. 'kernel:' should become: 'kernel'
+
+ 5. Create new log file for Bulk Import
+  a. './parselogs.pl /var/log/messages > messages.log.new'
+
+ 6. Bulk-load messages into: PostgreSQL
+  a. 'COPY messages (mtime,mhost,mfacility,mmessage) FROM '/home/linuxcbt/LinuxCBT_feat._PostgreSQL_Edition/messages.log.new' DELIMITER ';'; ' - Bulk-imports contents of new syslog file
+
+ 7. Create category for joins
+  a. 'INSERT INTO messagescategories VALUES('1', 'NOTICE'); '
+
+Note: Sometimes you may need to select a different delimiter when parsing
+
+ 8. Perform join with 'messagescategories'
+  a. 'SELECT mtime,mhost,mfacility,messagescategories.name, mmessage FROM messages as m INNER JOIN messagescategories ON messagescategories.cid = m.mcatid;'
+  b. 'SELECT mtime,mhost,mfacility,messagescategories.name, mmessage FROM messages as m INNER JOIN messagescategories ON messagescategories.cid = m.mcatid WHERE mfacility <> 'kernel';'
+
+Note: To post-process the log files, consider using: CRON
+
+
+###Integration of Perl with PostgreSQL###
+Requires:
+ 1. 'libpg-perl' - PostgreSQL module for Perl
+Features:
+ 1. DBMS connectivity to Perl applications/scripts
+
+Tasks:
+ 1. Install 'libpg-perl'
+  a. 'aptitude install libpg-perl'
+ 2. Create sample script to connect to DB and query table
+
+ 3. Integrate INSERTs into Perl Script
+Note: Caveat: Bulk Copies are faster than INSERTs
+  a. ' $conn->exec("INSERT INTO messages (mtime,mhost,mfacility,mmessage) VALUES (\'$date2\',\'$host\',\'$facility\',\'$message\');" ); '
+
+ 4. Perform Bulk Copy via script after transformations
+Note: Move this section outside of loops
+  a. ' $conn->exec("COPY messages (mtime,mhost,mfacility,mmessage) FROM '/home/linuxcbt/LinuxCBT_feat._PostgreSQL_Edition/messages.18.log.new' DELIMITER ';';" ); '
+
+###GRANT###
+Features:
+ 1. Assigns Priviliges:
+  a. SELECT - columns or tables
+  b. INSERT - columns or tables
+  c. UPDATE 
+  d. DELETE - row-based
+  e. CREATE
+  f. CONNECT
+  g. EXECUTE
+  h. TRIGGER
+  i. USAGE
+  j. TEMPORARY
+  k. TRUNCATE
+  l. REFERENCES
+ 2. Objects are owned by creators: owners/super-users
+  a. non-super users have NO access to them
+ 3. Use: '\dp' - to reveal GRANTs on objects
+
+Tasks:
+ 1. Create new user 'linuxcbt3' and try to SELECT data from existing tables
+  'CREATE ROLE linuxcbt3 LOGIN password 'abc123'; '
+Note: UPDATE & DELETE privileges require SELECT for criteri[a|on] application
+
+ 2. Attempt to query tables owned by other users
+  a. 'SELECT * FROM messages LIMIT 10;' - Fails
+
+ 3. Remedy scenario to allow user: 'linuxcbt3' to SELECT data from 'messages' table
+  a. 'GRANT SELECT (mid,mcatid,mtime) ON messages TO linuxcbt3;' - Column-level privileges
+  b. 'GRANT SELECT ON messages TO linuxcbt3; ' - Table-level privileges - supercedes column restrictions
+
+ 4. Attempt to INSERT new record into: 'messages' table
+  a. 'INSERT INTO messages (mtime,mhost,mfacility,mmessage) VALUES ('Oct 21 10:48:46 2010','linuxcbtbuild1','test','TESTING INSERT PRIVILEGE'); '
+  b. 'GRANT INSERT ON messages TO linuxcbt3;' - grants INSERT on ALL columns
+  c. 'GRANT USAGE ON messages_mid_seq TO linuxcbt3;' - grants USAGE on sequence
+Note: If using sequences, grant USAGE on sequence to user
+
+ 5. Attempt to UPDATE current records in: 'messages' table 
+  a. 'UPDATE messages SET mfacility = 'test2' WHERE mid = '204366'; '
+  b. 'GRANT UPDATE on messages TO linuxcbt3;' 
+Note: UPDATE privilege allows user to update ANY record in the table
+
+ 6. Attempt to DELETE current records from: 'messages' table
+  a. 'DELETE FROM messages WHERE mid = '204366'; '
+  b. 'GRANT DELETE on messages TO linuxcbt3;'
+
+ 8. Grant ALL privileges on : 'messages' table
+  a. 'GRANT ALL on messages TO linuxcbt3;'
+
+###REVOKE###
+Features:
+ 1. Converse of GRANT
+ 2. Unassigns privileges
+ 3. Sample permission set:
+ linuxcbt2=arwdDxt/linuxcbt2
+a = INSERT/Append
+r = Read/SELECT
+w = Write/UPDATE
+d = DELETE
+D = Truncate
+x = References
+t = Triggers
+/linuxcbt2 = permissions delegator/issuer
+
+
+Tasks:
+ 1. 'REVOKE ALL on messages FROM linuxcbt3;' - removes ALL privileges from the user
+ 2. 'GRANT ALL ON messages TO linuxcbt3;' - reinstate privileges
+ 3. 'REVOKE ALL on messages,messages_mid_seq FROM linuxcbt3;' - removes ALL privileges from the user for both objects
+ 4. Grant & Revoke: INSERT | UPDATE | DELETE
+  a. 'GRANT INSERT ON messages TO linuxcbt3;'
+  b. 'GRANT USAGE ON messages_mid_seq TO linuxcbt3;' - sequence generator access
+Note: INSERT may be granted independently of SELECT, unlike: UPDATE & DELETE
+  c. 'REVOKE INSERT ON messages FROM linuxcbt3; REVOKE USAGE ON messages_mid_seq FROM linuxcbt3;' - Two revocations: INSERT & USAGE
+  d. 'GRANT UPDATE ON messages TO linuxcbt3;'
+  e. 'UPDATE messages SET mfacility='TEST2' WHERE mid = '204371'; ' - Fails because the user has NO SELECT privilege to execute the criteria in the UPDATE query
+  f. 'GRANT SELECT ON messages TO linuxcbt3;'
+  g. 'REVOKE ALL ON messages,messages_mid_seq FROM linuxcbt3;'
+  h. 'GRANT DELETE ON messages TO linuxcbt3;'
+  i. 'DELETE FROM messages WHERE mid = 204371; '
+  j. 'GRANT SELECT ON messages TO linuxcbt3;'
+
+Test WITH GRANT OPTION
+ a. 'GRANT ALL on messages TO linuxcbt3 WITH GRANT OPTION;' - allows user: 'linuxcbt3' to GRANT ALL privileges on the object: 'messages' to other users
+ b. 'CREATE ROLE linuxcbt4 LOGIN PASSWORD 'abc123'; '
+ c. 'GRANT SELECT ON messages TO linuxcbt4;' - run as: 'linuxcbt3'
+ d. 'GRANT INSERT ON messages TO linuxcbt4;' - run as: 'linuxcbt3'
+ e. 'GRANT UPDATE ON messages TO linuxcbt4;' - run as: 'linuxcbt3'
+ f. 'GRANT DELETE ON messages TO linuxcbt4;' - run as: 'linuxcbt3'
+
+Attempt to REVOKE PRIVILEGES FROM 'linuxcbt3' as user: 'linuxcbt2' OR super user
+ a. 'REVOKE ALL ON messages FROM linuxcbt3;' - Fails due to privileges depency
+ b. 'REVOKE ALL ON messages FROM linuxcbt3 CASCADE;' - Recursive
+
+Note: If a permissions/privileges depency exists, use: 'CASCADE' option with 'REVOKE' command to descend the permissions/privileges hierarchy
+
+Test direct removal of privileges from top-level to bottom
+ a. 'GRANT ALL on messages TO linuxcbt3 WITH GRANT OPTION;' - run as: 'linuxcbt2' or super user
+ b. 'GRANT SELECT,DELETE on messages TO linuxcbt4; ' - run as: 'linuxcbt3'
+ c. 'REVOKE ALL on messages FROM linuxcbt4; ' - run as: 'linuxcbt2' OR super user - FAILS
+Note: Fails due to GRANT hierarchy
+ d. 'REVOKE ALL ON messages FROM linuxcbt3 CASCADE;' - Recursive
+
+###DB Backup###
+Features:
+ 1. Individual table, DB, or full DBMS backup
+ 2. 'pg_dump' & 'pg_dumpall'
+ 3. Operate on running DB
+ 4. Export SQL script or Archive (pg_dump) (used with pg_restore) formats
+ 5. SQL Script: Designed for full replay with: 'psql' utility
+ 6. Archive File: Designed to allow selective and/or reordered restores:
+  a. '-Fp) - Default - Plain SQL script output - uncompressed
+  b. '-Fc) - Custom, auto-compressed form - 'pg_restore'
+  c. '-Ft) - Tar form - not compressed - restrictions on reordering - works with: 'tar' & 'pg_restore'
+
+Tasks:
+ 1. Backup 'postgres' DB - Plain (-Fp) Format
+  a. 'pg_dump postgres' - dumps to STDOUT
+  b. 'pg_dump -v -f DB_Backup_postgres postgres ' - generates plain text SQL script file containing data
+Note: Uses 'COPY' to reconstruct data as opposed to: 'INSERT'
+  c. 'pg_dump -v postgres > DB_BACKUP_postgres2' - performs as above
+  d. 'pg_dump -v -s -f DB_Backup.schema postgres' - dumps SCHEMA ONLY
+  e. 'pg_dump -v -t messages -t messagescategories -f DB_Backup.messages.cats.tables.only'
+  f. 'pg_dump -v -t 'messages*' -f DB_Backup_ALL_messages_tables.only' - Archives ALL items in 'postgres' DB beginning with: 'messages'
+
+ 2. Backup 'postgres' DB - Compressed (-Fc) Format
+  a. 'pg_dump -v -Fc -f DB_Backup.postgres.compressed postgres' - creates custom, compressed file to be used with: 'pg_restore'
+
+ 3. Backup 'postgres' DB - Tar (-Ft) Format
+  a. 'pg_dump -v -Ft -f DB_Backup.postgres.tar postgres' - creates a tarball of DB
+
+ 4. Use 'pg_dumpall' to archive the entire DBMS
+  a. 'pg_dumpall -v -f DB_Backup.ALL'
+  b. Create auth file in: $HOME to obviate the need to authenticate to each DB
+  c. 'echo 'localhost:*:*:linuxcbt2:abc123' > ~/.pgpass && chmod 600 ~/.pgpass'
+  d. Re-run 'pg_dumpall' as user: 'linuxcbt2' - defined in: $HOME/.pgpass
+  e. 'pg_dumpall -v -U linuxcbt2 -f DB_Backup.ALL'
+
+
+###DB Restore###
+Features:
+ 1. Two tools: 'psql' && 'pg_restore'
+
+Tasks:
+ 1. Use 'pg_restore' to restore tables, DBs, etc.
+  a. 'DROP table messages2, messagescategories;'
+  b. 'pg_restore -v -d postgres DB_Backup.postgres.compressed' - full restoration using 'compressed' file
+  c. 'pg_restore -v -d postgres DB_Backup.postgres.tar' - full restoration using 'tar' file
+
+Note: Use: 'pg_restore -l backup_file' to enumerate items for selective/reordered restoration
+
+
+ 2. Backup 'linuxcbt2' DB and restore
+  a. 'pg_dump -v -C -Fc -f DB_Backup.linuxcbt2.DB linuxcbt2'
+  b. 'DROP DATABASE linuxcbt2;'
+  c. 'pg_restore -v -C -d postgres DB_Backup.linuxcbt2.DB' - restores DB 'linuxcbt2'
+  d. 'pg_dump -v -C -f DB_Backup.linuxcbt2.DB.sql linuxcbt2'
+  d. 'DROP DATABASE linuxcbt2;'
+  e. 'psql -f DB_Backup.linuxcbt2.DB' - Fails because source file is not SQL text
+
+ 3. Restore specific tables using: 'pg_restore'
+  a. 'DROP table messages2, messagescategories;'
+  b. 'pg_restore -v -d postgres -t messages2 DB_Backup.postgres.compressed' - restores 1 table
+  c. 'pg_restore -v -d postgres -t messagescategories DB_Backup.postgres.tar' - restores 1 table
+
+ 4. Use 'psql' to restore selected backup items (tables, sequences, etc.)
+  a. 'DROP table messages, messagescategories;'
+  b. 'psql -f DB_Backup.messages.cats.tables.only'
+  c. 'DROP table  messages, messagescategories, messages2, messagesalerts;'
+  d. 'psql -f DB_Backup_ALL_messages_tables.only;'
+
+###Windows DB Restoration###
+
+Tasks:
+ 1. Explore Windows PostgreSQL environment
+  a. 'psql -h 192.168.75.105'
+ 2. Restore data to Windows instance
+  a. 'psql -h 192.168.75.105 -f DB_Backup.ALL' - restores FULL DB to remote host
+ 3. Wreak Havoc on remote DB and Restore
+  a. 'DROP TABLE messages, messages2, messagescategories;'
+  b. 'pg_restore -v -h 192.168.75.105 -d postgres -t messages2 DB_Backup.postgres.compressed' - restores 1 table
+  c. 'pg_restore -v -h 192.168.75.105 -d postgres -t messages DB_Backup.postgres.compressed' - restores 1 table
+  d. 'pg_restore -v -h 192.168.75.105 -d postgres -t messagescategories DB_Backup.postgres.tar' - restores 1 table
+  e. 'DROP TABLE messages, messagescategories, messages2, messagesalerts;'  
+  f. 'psql -h 192.168.75.105 -f DB_Backup_ALL_messages_tables.only;'
+ Note: Ensure that remote system's HBA conf file accepts remote connections
+
+###Installation on RedHat Enterprise Linux###
+Features:
+ 1. PostgreSQL support
+ 2. Ability to use the same binary used on the other distributions
+
+
+Tasks:
+ 1. Copied binary from remote system to local RedHat system
+ 2. Executed it
+ 3. Confirm availability: 'ps -ef | grep -i postgres'
+ 4. Connect and confirm default environment
+ 5. Update ~linuxcbt $PATH & $PGUSER vars
+ 6. Source if necessary for active TTY
+  a. '. ~/.bash_profile'
+
+ 7. Mirror contents of remote server
+  a. Get 'DB_Backup.ALL' - use 'sftp'
+  b. Populate RedHat instance of PostgreSQL with data from Debian box
+   b1. 'psql -f DB_Backup.ALL'
+
+ 8. Remove tables and restore across the wire using: 'psql'
+  a. Update HBA conf to allow network connectivity
+  b. Restart 'postgres' to effect 'pg_hba.conf' change
+  c. Restore items using: 'psql' from remote host
+   c1. 'psql -U postgres -f DB_Backup.ALL postgres -h 192.168.75.20' - replays script on 
+remote, RedHat Enterprise box
+
+###SSH Tunnels###
+Features:
+ 1. Secure communications from point-to-point
+ 2. Encryption services
+ 3. Wrapper of communications
+ 4. Traffic is protected in transit, NOT at the endpoints
+ 5. Defaults to protecting loopback adapter address(es)
+
+Tasks:
+ 1. Sniff PostgreSQL communications using: 'tcpdump'
+  a. 'tcpdump -w postgres.dump.1 -v -i lo tcp port 5432'
+  b. 'psql -h localhost'
+  c. 'wireshark postgres.dump.1' - reveals sensitive data
+
+ 2. Apply SSH tunnels from Linux
+  a. 'ssh -L 5433:192.168.75.20:5432 192.168.75.20' - creates a tunnel between:
+linuxcbtbuild1 (.101) -> linuxcbtserv1 (.20)
+  b. 'netstat -ntl | grep 5433' - confirms existence of tunnel
+  c. 'psql -h localhost -p 5433' - initiate connection
+
+  d. 'ssh -L 5433:192.168.75.101:5432 192.168.75.101' - creates a tunnel between:
+linuxcbtbuild1 (.101) -> linuxcbtserv1 (.20)
+  e. 'psql -h 127.0.0.1 -p 5433' - initiate connection
+
+ 3. Apply SSH tunnel from Windows
+  a. Ensure that PuTTY or equivalent SSH client is installed
+  b. Setup session to forward TCP:5433 & TCP:5434 to TCP:5432 on Debian and RedHat boxes
+  c. Test 'psql' client access across the tunnel from Windows
+Note: This will not work with Windows as the target SSH server sans Cygwin or compatible SSH service
+
+
+###SSL Connections###
+Features:
+ 1. True end-to-end encryption protection - 100% 
+ 2. Listens to same, clear-text port: TCP:5432
+ 3. Auto-negotiates with client connection type unless server config (pg_hba.conf) enforce
+Oct 18 12:10:15 2010#linuxcbtbuild1#kernel#[963722.044003] arpalert[4845]: segfault at 126 ip b76b04cb sp bfd23c44 error 4 in libc-2.7.so[b763a000+155000]
+Oct 18 12:10:15 2010#linuxcbtbuild1#kernel#[963722.044003] arpalert[4845]: segfault at 126 ip b76b04cb sp bfd23c44 error 4 in libc-2.7.so[b763a000+155000]
+Oct 18 12:10:15 2010#linuxcbtbuild1#kernel#[963722.044003] arpalert[4845]: segfault at 126 ip b76b04cb sp bfd23c44 error 4 in libc-2.7.so[b763a000+155000]
+Oct 18 12:10:15 2010#linuxcbtbuild1#kernel#[963722.044003] arpalert[4845]: segfault at 126 ip b76b04cb sp bfd23c44 error 4 in libc-2.7.so[b763a000+155000]
+Oct 18 12:10:15 2010#linuxcbtbuild1#kernel#[963722.044003] arpalert[4845]: segfault at 126 ip b76b04cb sp bfd23c44 error 4 in libc-2.7.so[b763a000+155000]
+Oct 18 12:10:15 2010#linuxcbtbuild1#kernel#[963722.044003] arpalert[4845]: segfault at 126 ip b76b04cb sp bfd23c44 error 4 in libc-2.7.so[b763a000+155000]
+Oct 18 12:10:15 2010#linuxcbtbuild1#kernel#[963722.044003] arpalert[4845]: segfault at 126 ip b76b04cb sp bfd23c44 error 4 in libc-2.7.so[b763a000+155000]
+Oct 18 12:10:15 2010#linuxcbtbuild1#kernel#[963722.044003] arpalert[4845]: segfault at 126 ip b76b04cb sp bfd23c44 error 4 in libc-2.7.so[b763a000+155000]
+Oct 18 12:10:15 2010#linuxcbtbuild1#kernel#[963722.044003] arpalert[4845]: segfault at 126 ip b76b04cb sp bfd23c44 error 4 in libc-2.7.so[b763a000+155000]
+Oct 18 12:10:15 2010#linuxcbtbuild1#kernel#[963722.044003] arpalert[4845]: segfault at 126 ip b76b04cb sp bfd23c44 error 4 in libc-2.7.so[b763a000+155000]
+Oct 18 12:10:15 2010#linuxcbtbuild1#kernel#[963722.044003] arpalert[4845]: segfault at 126 ip b76b04cb sp bfd23c44 error 4 in libc-2.7.so[b763a000+155000]
+Oct 18 12:10:15 2010#linuxcbtbuild1#kernel#[963722.044003] arpalert[4845]: segfault at 126 ip b76b04cb sp bfd23c44 error 4 in libc-2.7.so[b763a000+155000]
+Oct 18 12:10:15 2010#linuxcbtbuild1#kernel#[963722.044003] arpalert[4845]: segfault at 126 ip b76b04cb sp bfd23c44 error 4 in libc-2.7.so[b763a000+155000]
+Oct 18 12:10:15 2010#linuxcbtbuild1#kernel#[963722.044003] arpalert[4845]: segfault at 126 ip b76b04cb sp bfd23c44 error 4 in libc-2.7.so[b763a000+155000]
+Oct 18 12:10:15 2010#linuxcbtbuild1#kernel#[963722.044003] arpalert[4845]: segfault at 126 ip b76b04cb sp bfd23c44 error 4 in libc-2.7.so[b763a000+155000]
+Oct 18 12:10:15 2010#linuxcbtbuild1#kernel#[963722.044003] arpalert[4845]: segfault at 126 ip b76b04cb sp bfd23c44 error 4 in libc-2.7.so[b763a000+155000]
+Oct 18 12:10:20 2010#linuxcbtbuild1#kernel#[963727.050042] arpalert[4847]: segfault at 126 ip b76b04cb sp bfd23c44 error 4 in libc-2.7.so[b763a000+155000]
+Oct 18 12:10:20 2010#linuxcbtbuild1#kernel#[963727.050042] arpalert[4847]: segfault at 126 ip b76b04cb sp bfd23c44 error 4 in libc-2.7.so[b763a000+155000]
+Oct 18 12:10:20 2010#linuxcbtbuild1#kernel#[963727.050042] arpalert[4847]: segfault at 126 ip b76b04cb sp bfd23c44 error 4 in libc-2.7.so[b763a000+155000]
+Oct 18 12:10:20 2010#linuxcbtbuild1#kernel#[963727.050042] arpalert[4847]: segfault at 126 ip b76b04cb sp bfd23c44 error 4 in libc-2.7.so[b763a000+155000]
+Oct 18 12:10:20 2010#linuxcbtbuild1#kernel#[963727.050042] arpalert[4847]: segfault at 126 ip b76b04cb sp bfd23c44 error 4 in libc-2.7.so[b763a000+155000]
+Oct 18 12:10:20 2010#linuxcbtbuild1#kernel#[963727.050042] arpalert[4847]: segfault at 126 ip b76b04cb sp bfd23c44 error 4 in libc-2.7.so[b763a000+155000]
+Oct 18 12:10:20 2010#linuxcbtbuild1#kernel#[963727.050042] arpalert[4847]: segfault at 126 ip b76b04cb sp bfd23c44 error 4 in libc-2.7.so[b763a000+155000]
+Oct 18 12:10:20 2010#linuxcbtbuild1#kernel#[963727.050042] arpalert[4847]: segfault at 126 ip b76b04cb sp bfd23c44 error 4 in libc-2.7.so[b763a000+155000]
+Oct 18 12:10:20 2010#linuxcbtbuild1#kernel#[963727.050042] arpalert[4847]: segfault at 126 ip b76b04cb sp bfd23c44 error 4 in libc-2.7.so[b763a000+155000]
+Oct 18 12:10:20 2010#linuxcbtbuild1#kernel#[963727.050042] arpalert[4847]: segfault at 126 ip b76b04cb sp bfd23c44 error 4 in libc-2.7.so[b763a000+155000]
+Oct 18 12:10:20 2010#linuxcbtbuild1#kernel#[963727.050042] arpales type
+ 4. Supports server (default) & client certificates
+ 5. 'openssl version -d' - reveals config directory for OpenSSL
+
+Requires:
+ 1. Server keypair: 'server.crt' (public) & 'server.key" (private) in: DATA directory
+ 2. 'server.key' - MUST be flagged 600
+ 3. Optionally, 'root.crt' & 'root.crl' 
+ 4. 'ssl=on' - enabled via: 'postgresql.conf'
+
+
+Tasks:
+ 1. Generate Server Keypair
+  a. 'openssl req -new -text -out server.req' - Generates a request
+  b. 'openssl rsa -in privkey.pem -out server.key' - removes passphrase
+  c. 'rm privkey.pem' - because we now have an RSA version in: 'server.key'
+  d. 'openssl req -x509 -in server.req -text -key server.key -out server.crt' - generates self-signed certificate (.crt) file
+  e. 'chown postgres server.key && chmod 600 server.key'
+
+ 2. Configure PostgreSQL
+  a. 'ssl=on' - postgresql.conf
+  b. Restart postgresql
+
+Note: Test inability to restart postgres when 'server.key' is not readable
+
+ 3. Test connectivity
+  a. 'psql -U postgres -h localhost' - SSL was used because TCP/IP was used
+Note: SSL is not enabled when using Unix Domain Sockets
+  b. 'psql -h 192.168.75.101' - SSL was used...
+  c. 'psql ' - SSL was NOT used due to Unix Domain Sockets usage
+  d. Connect to RedHat host and test connectivity
+  
+ 4. Sniff SSL session with TCPDump
+
+ 5. Test from Windows
+  a. 'psql -h 192.168.75.101' - It works with SSL...
+
 ###################################################### Raid ######################
 
 mdadm --create /dev/md0 --level=0 --raid-devices=2 /dev/sda6 /dev/sda7
