@@ -2341,3 +2341,10 @@ Then add the new drive and re-assemble the array:
 mdadm --grow --raid-devices=4 /dev/md1
 
 # mdadm --assemble /dev/md0 /dev/sdb1 /dev/sdc1 
+
+
+################
+autobiographies
+
+There are great biographies of Benjamin Franklin, James Madison, Albert Einstein, Thomas Jefferson, Napoleon Bonaparte, Mahatma Gandhi, Charles Darwin, Jack Welsh, Alexander Hamilton, Warren Buffet and many other illustrious personalities.
+
