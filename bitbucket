@@ -2497,7 +2497,7 @@ On Puppet Master Server:---
 	sudo mkdir -p /etc/puppet/environments/production/{modules,manifests}
 	cd /etc/puppet/environments/production/
 	vim environment.conf
-		modulepath = /etc/puppet/environment/production/modules
+		modulepath = /etc/puppet/environments/production/modules
 		environment_timeout = 5s
 
 
@@ -2522,12 +2522,248 @@ set selinux to permissive
 ** Puppet nodes communicate to puppet master over http using an api, in default this http connection is terminated via webrick which is terrible for production so we need to use an altenative so apache http server is an perfect alternative. Apache is a web server it listens for tcp connection from puppet nodes on port 8140 but apache cannot natively run ruby application so we need to integrate it with something that something is passenger
 
 
+	Installing apache and someother required utils
+	sudo yum -y install httpd httpd-devel mod_ssl ruby-devel rubygems gcc gcc-c++ libcurl-devel openssl-devel
+	
+	Install rack and passenger using gem
+	gem install rack passenger
+	
+	Install passenger apache2 module
+	passenger-install-apache2-module
 
 
+   LoadModule passenger_module /usr/lib/ruby/gems/1.8/gems/passenger-5.0.21/buildout/apache2/mod_passenger.so
+   <IfModule mod_passenger.c>
+     PassengerRoot /usr/lib/ruby/gems/1.8/gems/passenger-5.0.21
+     PassengerDefaultRuby /usr/bin/ruby
+   </IfModule>
 
 
-sudo puppet cert list
+	Create directory for puppet master itself
+	mkdir -p /usr/share/puppet/rack/puppetmasterd/{public,tmp}
 
+	Copy the default file to puppet master dir
+	cp /usr/share/puppet/ext/rack/config.ru /usr/share/puppet/rack/puppetmasterd/
+	chown puppet:puppet /usr/share/puppet/rack/puppetmasterd/config.ru
+
+	Configure passenger
+	git clone https://github.com/benpiper/puppet-fundamentals-puppetmaster
+
+
+	puppet.conf
+
+	LoadModule passenger_module /usr/lib/ruby/gems/1.8/gems/passenger-5.0.21/buildout/apache2/mod_passenger.so
+	PassengerRoot /usr/lib/ruby/gems/1.8/gems/passenger-5.0.21
+	PassengerDefaultRuby /usr/bin/ruby
+
+	The 5.0.21 should be the same
+
+        SSLCertificateFile      /var/lib/puppet/ssl/certs/puppetcent.technotronix.com.pem
+        SSLCertificateKeyFile   /var/lib/puppet/ssl/private_keys/puppetcent.technotronix.com.pem
+	save and exit
+	
+	cp puppetmaster.conf /etc/httpd/conf.d/puppetmaster.conf
+	
+	sudo service httpd start
+	chkconfig httpd on
+
+	Installation of puppet master is completed
+
+8)Installing the puppet agent on centos node
+
+	adding the puppet repository
+        sudo yum -y install http://yum.puppetlabs.com/puppetlabs-release-el-6.noarch.rpm
+ 
+	Install puppet agent
+	yum -y install puppet
+
+	make the agent aware about the server in /etc/puppet/puppet.conf in agent in agent section
+	server = puppetcent.technotronix.com
+
+	generate ssl certificates
+	puppet agent --verbose --no-daemonize --onetime
+
+9)Installing the puppet agent on ubuntu node
+	
+	wget https://apt.puppetlabs.com/puppetlabs-release-precise.deb
+	sudo dpkg -i puppetlabs-release-precise.deb
+	apt-get update
+	apt-get install puppet
+
+	Installation of puppet aget complete, This completes my setup.
+
+
+################################################
+Puppet testing
+
+Try and create a file my with time muing its content
+
+/etc/puppet/environments/production/manifests/nodes.pp
+
+
+node 'puppetcentcl1.technotronix.com' {
+    file { '/info':
+      ensure  =>  'present',
+      content =>  inline_template("Created by Puppet at <%= Time.now %>\n"),
+  }     
+}
+
+
+node 'puppetubucl.technotronix.com' {
+
+}
+
+###############
+Run the below given command on puppetcentcl1.technotronix.com
+
+puppet agent --verbose --no-daemonize --onetime
+
+###############
+
+ot@puppetcentcl1 ~]# puppet agent --verbose --no-daemonize --onetime
+Info: Retrieving pluginfacts
+Info: Retrieving plugin
+Info: Caching catalog for puppetcentcl1.technotronix.com
+Info: Applying configuration version '1446924685'
+Info: Computing checksum on file /info
+Info: /Stage[main]/Main/Node[puppetcentcl1.technotronix.com]/File[/info]: Filebucketed /info to puppet with sum 453073f9dd1a0618d8fad0f033b9ec0f
+Notice: /Stage[main]/Main/Node[puppetcentcl1.technotronix.com]/File[/info]/content: content changed '{md5}453073f9dd1a0618d8fad0f033b9ec0f' to '{md5}f6fe66506520de72dfb694a50c257cdd'
+Notice: Finished catalog run in 0.04 seconds
+
+The above output shows it got executed sucessfully
+
+################################################
+Incase if you want to get the original file again, puppet has a filebucket from which we can retrive the file
+
+puppet -l --bucket /var/lib/puppet/clientbucket/ restore /info d5f58feb62f5a21150934558d0f78ab5 ======================================================
+								this hash is from the log for the file when it was first created		   \
+																		   \
+																		   \			
+Nov  8 00:57:25 puppetcentcl1 puppet-agent[3847]: Caching catalog for puppetcentcl1.technotronix.com						   \		
+Nov  8 00:57:25 puppetcentcl1 puppet-agent[3847]: Applying configuration version '1446924444'							   \	
+Nov  8 00:57:25 puppetcentcl1 puppet-agent[3847]: (/Stage[main]/Main/Node[puppetcentcl1.technotronix.com]/File[/info]/ensure) created		   \		
+Nov  8 00:57:25 puppetcentcl1 puppet-agent[3847]: Creating state file /var/lib/puppet/state/state.yaml						   \	
+Nov  8 00:57:25 puppetcentcl1 puppet-agent[3847]: Finished catalog run in 0.03 seconds								   \	
+Nov  8 00:58:32 puppetcentcl1 puppet-agent[3978]: (/Stage[main]/Main/Node[puppetcentcl1.technotronix.com]/File[/info]/content) content changed '{md5}d5f58feb62f5a21150934558d0f78ab5' to '{md5}453073f9dd1a0618d8fad0f033b9ec0f'
+Nov  8 00:58:32 puppetcentcl1 puppet-agent[3978]: Finished catalog run in 0.04 seconds
+
+If you just want to view the file
+
+puppet -l --bucket /var/lib/puppet/clientbucket/ get /info d5f58feb62f5a21150934558d0f78ab5
+
+################################################
+Installing a package in both the servers and esuring its running
+
+ /etc/puppet/environments/production/manifests/nodes.pp
+
+
+node 'puppetcentcl1.technotronix.com' {
+    file { '/info':
+      ensure  =>  'present',
+      content =>  inline_template("Created by Puppet at <%= Time.now %>\n"),
+  }
+
+  package { 'ntp':
+        ensure => 'installed',
+  }
+ 
+  service { 'ntpd':
+        ensure => 'running',
+        enable => true,
+   }
+}
+
+
+node 'puppetubucl.technotronix.com' {
+   package { 'ntp':
+        ensure => 'installed',
+  }
+   service { 'ntp':
+        ensure => 'running',
+        enable => true,
+    }
+}
+#####
+this will start the ntp service on both the machine
+
+################################################
+Both the servers are of different os family their package names are different (centos uses ntpd and ubuntu uses ntp) so we need to mention this in the manifest, this can be avoided using puppet selectors.
+
+Below config uses puppet selectors
+
+/etc/puppet/environments/production/manifests/nodes.pp
+
+$ntpservice = $osfamily ? {
+ 'redhat'  => 'ntpd',
+  'debian' =>  'ntp',
+  default => 'ntp',
+}
+
+node 'puppetcentcl1.technotronix.com' {
+    file { '/info':
+      ensure  =>  'present',
+      content =>  inline_template("Created by Puppet at <%= Time.now %>\n"),
+  }
+
+  package { 'ntp':
+        ensure => 'installed',
+  }
+ 
+  service { $ntpservice:
+        ensure => 'running',
+        enable => true,
+   }
+}
+
+
+node 'puppetubucl.technotronix.com' {
+   package { 'ntp':
+        ensure => 'installed',
+  }
+   service { $ntpservice:
+        ensure => 'running',
+        enable => true,
+    }
+}
+################################################
+Classes
+In Puppet, classes are code blocks that can be called in a code elsewhere. Using classes allows you reuse Puppet code, and can make reading manifests easier.
+We have many repeatation in our manifest file, we can make use of puppet classes to avoihd repetation
+
+
+/etc/puppet/environments/production/manifests/nodes.pp
+
+node 'puppetcentcl1.technotronix.com' {
+   class { 'linux': }
+}
+
+node 'puppetubucl.technotronix.com' {
+   class { 'linux': }
+}
+
+class linux {
+$ntpservice = $osfamily ? {
+    'redhat' => 'ntpd',
+    'debian' =>  'ntp',
+     default => 'ntp',
+   }
+
+     file { '/info.txt':
+        ensure => 'present',
+        content =>  inline_template("Created by Puppet at <%= Time.now %>\n"),   
+     }
+     package { 'ntp':
+        ensure => 'installed',
+    }
+
+    service { $ntpservice:
+         ensure => 'running',
+         enable => true,
+     }   
+
+}
+
+################################################
 sudo puppet cert sign host1.nyc2.example.com     Sign A Request
 
 If you want to sign all of the current requests, use the -all option, like so:
