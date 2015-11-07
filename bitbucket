@@ -38,6 +38,82 @@ docker commit -a "bhavesh" -m "message" imageid newimagename
 
 docker run -d  --name="imagename" -p=80:80 imagename --- to expose a port from the docker container
 
+docker -H 192.168.122.15 -d & 		makes docker listen on network
+
+/var/lib/docker/aufs/diff 		location where docker images are stored
+
+alias dps="docker ps"
+
+docker exec -it 593c208b1466 /bin/bash		execute bash inside a container
+
+docker save -o /tmp/imagename.tar newimagename
+
+docker run --cpu-share=256
+docker run memory=1g
+docker run -d ubuntu:14.04.1 /bin/bash -c "ping 8.8.8.8"
+
+
+#####Building docker images
+
+sample dockerfile
+
+FROM ubuntu:15.04
+MAINTAINER bhaveshpatel@gmail.com
+RUN apt-get update
+RUN apt-get install -y nginx
+CMD "echo","hello world"
+
+
+this file have to be saved as Dockerfile
+
+command to build 
+
+docker build -t helloworld:1.0
+
+https://www.digitalocean.com/community/tutorials/docker-explained-using-dockerfiles-to-automate-building-of-images
+
+#####################################
+#####################################
+
+
+
+MY Repo
+
+docker pull bhaveshpatel/byteoflinux
+
+for pushing a image to the repo we need to tag a image first
+
+docker tag imageid newimagename
+#####################################
+docker run -d -p 5000:5000 registry		running a registry container
+
+#####################################
+
+Docker Clustering unisg swarm
+
+swarm installation
+
+sudo apt-get install -y golang
+
+export GOPATH=~/go
+mkdir ~/go
+install git 
+go get -u github.com/docker/swarm
+PATH=$PATH:~/go/bin
+
+
+swarm create
+
+0371e652795c0d173e6f79c06eeaacca
+
+swarm join token://0371e652795c0d173e6f79c06eeaacca --addr 192.168.122.81:2375
+
+swarm manage token://0371e652795c0d173e6f79c06eeaacca -H 0.0.0.0:4243 &
+
+6efd75a089190e1e8d90e86db53e79f6
+
+
+#####################################
 
 What is java class file
 
@@ -524,6 +600,21 @@ for eg:-
 git clone https://github.com/bhaveshpatel826/Python.git
 
 Branching In git means taking the project in your own direction without affecting the the master code. So that you can go an work with the code without potentially introducing unstable code to the master branch.
+
+
+git diff master new-branch --name-only  list only the file which are different.
+git diff master new-branch --stat
+git stash			adds a file to a stashing area
+git stash list 			shows all the stashed objects
+git stash show stashname	
+git stash show stashname -p  	shows everything in detail
+git diff stashname1 stashname2	shows the diff between these 2
+
+git stash clear			clears all the stashes
+
+git stash save "message"
+
+git stash apply			apply the recent stash
  
 
 ######################################################## LEARNING NAGIOS 09-10-2-15################################################################
@@ -2347,4 +2438,106 @@ mdadm --grow --raid-devices=4 /dev/md1
 autobiographies
 
 There are great biographies of Benjamin Franklin, James Madison, Albert Einstein, Thomas Jefferson, Napoleon Bonaparte, Mahatma Gandhi, Charles Darwin, Jack Welsh, Alexander Hamilton, Warren Buffet and many other illustrious personalities.
+
+
+################  Learning puppet	1/11/2015
+
+
+################
+Puppet installation
+
+
+On Puppet Master Server:---
+1)Install vim git ntp
+	sudo yum -y install git vim ntp
+	sudo service ntpd start and configure it to start at boot time.
+
+2)Installing the puppet master 
+	adding the puppet repository
+	sudo yum -y install http://yum.puppetlabs.com/puppetlabs-release-el-6.noarch.rpm
+	
+	adding the puppet server
+	sudo yum -y install puppet-server
+
+	verify the installation
+	puppet master --version
+
+3)Setting up directory environment
+
+** puppet programs are stored in files called puppet manifest, puppet manifests consist of node and resource declaration which tells puppet which config to apply to which node, (but how does puppet master know which manifest to use and where to find them). By default puppet loads site manifest which is located in /etc/puppet/manifest/site.pp. Problem with this is it limits you to single manifest per puppet master. DIRECTORY ENVIRONMENTS are alternative to use the default site manifest they allow youto maintain diff env on single puppet master eg env for testing,production,development these environment are seprated by directories hence the term "directory environment"
+
+	Tasks:-
+		Create a production environment
+		Lower the environment timeout
+		set dns alternative name
+
+** Each directory env is controlled from environment configuration file, directory env are stored in "/etc/environments/production/environment.conf" where production is our env so we created a subdirectory called production.
+
+4)Pupptet Configuration file controls many aspects of puppet 	/etc/puppet/puppet.conf contains 3 sections
+	MASTER	contains master specific config
+	AGENT	contains agent specific config
+	MAIN	any thing other than above
+
+	Example Puppet Config
+	
+	[main]
+	logdir=/var/log/puppet
+	rundir=/var/run/puppet
+	ssldir=$vardir/ssl
+
+	[master]
+	environments=$confdir/environments
+	basemodulepath=$confdir/modules:/opt/puppet/share/puppet/modules
+
+	[agent]								Puppet master runs as a puppet agent, you want to apply changes to puppet master itself.
+	classfile=$vardir/classes.txt
+	localconfig=$vardir/localconfig
+
+5) Puppet env setup
+	sudo mkdir -p /etc/puppet/environments/production/{modules,manifests}
+	cd /etc/puppet/environments/production/
+	vim environment.conf
+		modulepath = /etc/puppet/environment/production/modules
+		environment_timeout = 5s
+
+
+make puppet aware about the new env config
+
+[main]
+    dns_alt_names = puppet,puppetmaster,puppetcent.technotronix.com
+
+[master]
+    environmentpath = $confdir/environments
+    basemodulepath = $confdir/modules:/opt/puppet/share/modules
+
+set selinux to permissive
+
+6)create ssl certificates
+	puppet master --verbose --no-daemonize
+	
+	verify my going to /var/lib/puppet/ssl
+
+7) Installing apache passenger
+
+** Puppet nodes communicate to puppet master over http using an api, in default this http connection is terminated via webrick which is terrible for production so we need to use an altenative so apache http server is an perfect alternative. Apache is a web server it listens for tcp connection from puppet nodes on port 8140 but apache cannot natively run ruby application so we need to integrate it with something that something is passenger
+
+
+
+
+
+
+sudo puppet cert list
+
+sudo puppet cert sign host1.nyc2.example.com     Sign A Request
+
+If you want to sign all of the current requests, use the -all option, like so:
+
+sudo puppet cert sign --all
+
+sudo puppet cert clean hostname 		Revoke Certificates
+
+sudo puppet cert list --all			View All Signed Requests
+
+sudo puppet apply /etc/puppet/modules/test/init.pp
+
 
