@@ -2762,6 +2762,17 @@ $ntpservice = $osfamily ? {
      }   
 
 }
+################################################
+If we want to install three packages at once this can be done using variable array of puppet resources and including it in the class.
+
+class linux {
+     
+    $admintools = ['git', 'vim', 'screen']
+     package { $admintools:
+        ensure => 'installed',
+         }
+
+
 
 ################################################
 sudo puppet cert sign host1.nyc2.example.com     Sign A Request
