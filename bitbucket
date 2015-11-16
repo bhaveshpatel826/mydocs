@@ -806,6 +806,8 @@ Create hostgorups, add members to it and then add these hostgorups to the
 services groups, so all the members of the hostgourps will be acquire these services
 
 
+sudo nagios3 -v /etc/nagios3/nagios.cfg
+
 
 ###################################################### Learning Iptables 23-09-2015 ################################################################
 
@@ -1176,6 +1178,39 @@ The ORDER BY keyword sorts the records in ascending order by default. To sort th
 creating a super user
 
 createuser -e -s U postgres bhavesh
+
+CREATE user agovil WITH PASSWORD 'Kh@rt0um';
+
+create a group
+CREATE GROUP dept;
+
+order to assign members/users to the group
+ALTER GROUP dept ADD USER agovil,nchabbra;
+
+To view groups
+select * from pg_group;
+
+In order to drop a database that has active connections to it, you will have to follow these steps:
+1. Identify all of the active sessions on the database. To identify all of the active
+sessions on the database, you need to query the pg_stat_activity catalog
+table as follows:
+SELECT * from pg_stat_activity where datname='testdb1';
+2. Terminate all of the active connections to the database. To terminate all of the active connections, you will need to use the pg_terminate_backend function as follows:
+SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'testdb1';
+3. Once all of the connections are terminated, you may proceed with dropping the
+database using the DROP DATABASE statement.
+
+To create the database cluster, use the initdb command:
+$ initdb -D /var/lib/pgsql/data
+Another way of initializing the database cluster is by calling the initdb command via the
+pg_ctl utility:
+$ pg_ctl -D /var/lib/pgsql/data initdb
+
+
+It is also possible to reload the configuration file while being connected to a PostgreSQL
+session. However, this can be done by the superuser only:
+postgres=# select pg_reload_conf();
+
 
 drop a user
 drop -e -U postgres bhavesh
@@ -2772,8 +2807,165 @@ class linux {
         ensure => 'installed',
          }
 
+################################################
+Creating Puppet Modules
+
+cd /etc/puppet/environments/production/modules/
+
+command to generate puppet module
+
+sudo puppet module generate bhavesh-apache --environment production
+			     module name	only accessible to production environ
 
 
+Module Directory structure
+
+*Modulename
+-manifests 	Contains an init.pp file that is automatically loaded
+-files		Contains files that we need to push to puppet node only for static files
+-templates	Contains files with mixed static and dynamic content. Dynamic content modified based on custom variable and facts
+-lib		Contains custom facts Require ruby coding
+-facts.d	Contain external facts
+-tests		used for unit testing
+-spec
+
+
+By default when you create a module a init.pp file is created in manifest directory which contains our module class
+we can code within that class block and call the module as a class in our nodes.pp file
+
+################################################
+Conditional example
+
+if $osfamily == 'redhat' {
+	package { 'php-xml':
+	  ensure => 'present',
+	}
+}
+################################################
+Installing the apache module from puppet labs
+
+puppet module install puppetlabs-apache --modulepath /etc/puppet/environments/production/modules/
+
+class { '::apache':						::'apache': ensures that it starts after installation
+  docroot => '/var/www/html',
+  mpm_module => 'prefork',
+  subscribe => Package[$phpmysql],				subscribe:- any changes in php config apache will be restarted
+}
+
+class { '::apache::mod::php':} 					install mod_php defaults
+
+
+################################################
+Installing vcsrepo for integration with git
+
+vcsrepo { '/var/www/html':
+  ensure 	=> 'present',
+  provider	=> 'git',
+  source	=> '"githubrepo address"',
+  revision	=> 'revision name to be used',
+}
+
+################################################
+
+################################################
+
+Files are the most configured resources on a system, we manage them with the file type:
+
+file { 'httpd.conf':
+    # (namevar) The file path
+    path      => '/etc/httpd/conf/httpd.conf',  
+    # Define the file type and if it should exist:
+    # 'present','absent','directory','link'
+    ensure    => 'present',
+    # Url from where to retrieve the file content
+    source    => 'puppet://[puppetfileserver]/<share>/path',
+    # Actual content of the file, alternative to source
+    # Typically it contains a reference to the template function
+    content   => 'My content',
+    # Typical file's attributes
+    owner     => 'root',
+    group     => 'root',
+    mode      => '0644',
+    # The sylink target, when ensure => link
+    target    => '/etc/httpd/httpd.conf',
+    # Whether to recursively manage a directory (when ensure => directory)
+    recurse   => true,
+}
+
+
+################################################
+exec { 'get_my_file':
+    # (namevar) The command to execute
+    command   => "wget http://mysite/myfile.tar.gz -O /tmp/myfile.tar.gz',
+    # The search path for the command. Must exist when command is not absolute
+    # Often set in Exec resource defaults
+    path      => '/sbin:/bin:/usr/sbin:/usr/bin',
+    # A file created by the command. It if exists, the command is not executed
+    creates   => '/tmp/myfile.tar.gz',
+    # A command or an array of commands, if any of them returns an error
+    # the command is not executed
+    onlyif    => 'ls /tmp/myfile.tar.gz && false',
+    # A command or an array of commands, if any of them returns an error
+    # the command IS executed
+    unless    => 'ls /tmp/myfile.tar.gz',
+}
+
+################################################
+Managing dependencies - before | notify
+
+
+package { 'exim':
+  before => File['exim.conf'],  
+}
+
+file { 'exim.conf':
+  notify => Service['exim'],
+}
+
+service { 'exim':
+}
+
+
+################################################
+
+package { 'exim':
+}
+
+file { 'exim.conf':
+  require => Package['exim'],
+}
+
+service { 'exim':
+  subscribe => File['exim.conf'],
+}
+
+
+################################################
+selector for variable's assignement
+
+$package_name = $osfamily ? {
+   'RedHat' => 'httpd',
+   'Debian' => 'apache2',
+   default  => undef,
+ }
+
+case
+
+case $::osfamily {
+   'Debian': { $package_name = 'apache2' }
+   'RedHat': { $package_name = 'httpd' }
+   default: { notify { "Operating system $::operatingsystem not supported" } }
+ }
+
+if elsif else
+
+if $::osfamily == 'Debian' {
+   $package_name = 'apache2'
+ } elsif $::osfamily == 'RedHat' {
+   $package_name = 'httpd'
+ } else {
+   notify { "Operating system $::operatingsystem not supported" }
+ }
 ################################################
 sudo puppet cert sign host1.nyc2.example.com     Sign A Request
 
@@ -2786,5 +2978,35 @@ sudo puppet cert clean hostname 		Revoke Certificates
 sudo puppet cert list --all			View All Signed Requests
 
 sudo puppet apply /etc/puppet/modules/test/init.pp
+
+puppet resource --types				To list all resource types
+
+
+From the shell the command line interface:
+
+puppet describe file
+
+For the full list of available descriptions try:
+
+puppet describe --list
+
+
+Use puppet resource to interrogate the RAL:
+
+puppet resource user
+
+puppet resource user root
+
+puppet resource package
+
+puppet resource service
+
+
+To view all or a specific configuration setting:
+
+puppet config print all
+puppet config print modulepath
+
+
 
 
