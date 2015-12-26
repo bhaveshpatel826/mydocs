@@ -3259,13 +3259,118 @@ mc = memcache.Client(['192.168.122.31:11211','192.168.122.67:11211'])
 
 mc.get("fname")
 
+################################################
+Cron Schedulers
+6 fileds in crontab file
+1 ---- minutes
+2 ---- hours
+3 ---- every day of the month
+4 ---- month of the year
+5 ---- week day
+6 ---- command itself
+
+
+
+
+################################################
+
+
 
 
 ################################################
 Learning Postfix	15-12-2015
 ################################################
 
-master.cf file is responsible for spawning various binaries which carry out postfix operation
+master.cf file is responsible for spawning various binaries which carry out postfix operation.
 
 
+################################################
+Learning Mongodb	24-12-2015
+
+* start mongo on a mongo server, start mongo from /mongo/bin directory
+
+ * You also need to create a mongodb data directory.
+
+mongodb --dbpath ./data
+
+* connect mongo from another host, you need to install mongo client utilities
+
+mongo --host 192.168.122.199 --port 27017
+
+shuting down a mongodb server from inside the mongo shell.
+
+db.shutdownServer()
+
+but you can only shutdown the server if you are connected to admin database
+
+use admin 	--------switch to admin
+
+* Incase of unclean shutdown start mongodb manually with some other port and with the same database directory. Use the following command.
+
+sudo mongod --port 40000 --dbpath /var/lib/mongodb/
+
+this way the data in the data directoy will be recovered, and after shuting down this server, you can start the server the upstart way.
+
+always check for mongod.lock in /var/lib/mongodb/ directory, if the size of the mongod.lock file is anything other then 0 bytes then the mongo server is still running.
+
+
+* mongodb storage engine
+
+Storage Engine its an interface between the database and the hardware, storage engine is what the database uses to add,update,delete,create,read operations,
+
+mmapv1, wiredtiger
+
+Mongo uses write ahead log known as journaling, when mongo acknowledges write to a disk the data migth not be acknowledged to the disk, while when the journaling is on the data written to application, the data is written to the disk, while when journaling is off the data written to the application is not written to the disk, there is a heavy chance of data loss the risk window is much greater if journaling is kept off.
+
+if using mmapv1 in mongo 3 the journal flush interval is set by default to 100 miliseconds when the journal files and the data files are on the same data subsystem, when the journal files and the data files are on different subsystem the journal flush are set to 30 miliseconds.
+
+* if journal flush is reduce to very low value, it may increase the io pressure, on a write heavy system you may reduce your throughput because of increase competition on already stressed io channel
+
+
+to get mongodb status on webui 
+	net:
+	   http:
+	      enabled: true
+
+* Mongo 
+
+db.goo.insert({_id:4})
+
+db.goo.find({_id:4, y:false})		find all the document with id 4 and y = 4
+
+db.goo.find ({_id: {$gt: 1, $lt:7}}) 	finds all the document with id greater then 1 and less then 7
+
+db.goo.update({_id:4}, {$set:{x:1}})	find the document with id 4 and update the value of x = 1
+
+db.goo.update({_id:4}, {$set:{y:true}})
+
+db.goo.update({y:true},{$inc:{x:1}})	finds the document where y is true and increments value of k x by one
+
+db.testdb.insert([{"name" : "dell monitor"}, {"name" : "samsung monitor"}, {"name" : "samsung mobile"}, {"name" : "gti 9100i"}]) 	inserts an array of info
+
+* mongo stores documents in its native format bson (binary serialization object notation), every document can save its own schema.
+
+* The objectid created when a document is created represents 24 bit hexadecimal value,
+
+{ "_id" : ObjectId("567e858601530a2438eaf86d"), "name" : "Bhavesh Patel" }
+{ "_id" : ObjectId("567e85c101530a2438eaf86e"), "name" : "linux Opensource" }
+{ "_id" : ObjectId("567e85f701530a2438eaf86f"), "name" : "testing something" }
+{ "_id" : ObjectId("567e86a001530a2438eaf870"), "name" : "dlink router" }
+{ "_id" : ObjectId("567e86a001530a2438eaf871"), "name" : "netgear router" }
+{ "_id" : ObjectId("567e871c01530a2438eaf872"), "name" : "dell monitor" }
+{ "_id" : ObjectId("567e871c01530a2438eaf873"), "name" : "samsung monitor" }
+{ "_id" : ObjectId("567e871c01530a2438eaf874"), "name" : "samsung mobile" }
+{ "_id" : ObjectId("567e871c01530a2438eaf875"), "name" : "gti 9100i" }
+
+eg: { "_id" : ObjectId("567e871c01530a2438eaf875"), "name" : "gti 9100i" }
+
+	First four byte of this consist of time stamp "567e871c" each 2 character consist of 1 byte
+	Next 3 byte represent the unique id of the computer that generated this info "01530a"
+	Next 2 byte are going to represent the id based on the process that the computer used to generate this info "2438"
+	Last 3 bytes are going to be increamenting number "eaf875"
+
+
+
+ 
+#############################################
 
